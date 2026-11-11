@@ -155,6 +155,29 @@ public sealed class RadiacodeDevice : IAsyncDisposable
     public async Task<bool?> ReadChargingAsync(CancellationToken ct = default) =>
         await ReadSfrAsync(Vsfr.ChargerState, ct) is { } v ? v != 0 : null;
 
+    /// <summary>Reads the user-adjustable settings (sound, vibration, display, alarm thresholds).</summary>
+    public async Task<DeviceSettings> ReadSettingsAsync(CancellationToken ct = default)
+    {
+        var raw = new Dictionary<Vsfr, uint>();
+        foreach (var id in DeviceSettings.Registers)
+            raw[id] = await ReadSfrAsync(id, ct) ?? throw new ProtocolException($"Setting {id} not available on this firmware");
+        return DeviceSettings.FromRaw(raw);
+    }
+
+    /// <summary>Writes only the registers that differ between <paramref name="current"/> and <paramref name="wanted"/>.</summary>
+    public async Task<int> WriteSettingsAsync(DeviceSettings current, DeviceSettings wanted, CancellationToken ct = default)
+    {
+        var before = current.ToRaw();
+        int written = 0;
+        foreach (var (id, value) in wanted.ToRaw())
+        {
+            if (before[id] == value) continue;
+            await WriteRequestAsync(id, U32(value), ct);
+            written++;
+        }
+        return written;
+    }
+
     public Task ResetDoseAsync(CancellationToken ct = default) => WriteRequestAsync(Vsfr.DoseReset, null, ct);
 
     private static byte[] U32(uint v)

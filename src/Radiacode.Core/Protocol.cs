@@ -51,7 +51,15 @@ public enum Vsfr : uint
     SoundOn = 0x0522,
     VibroCtrl = 0x0530,
     VibroOn = 0x0531,
+    DoseRateLevel1 = 0x8000,   // µrem/h (older firmware: µR/h)
+    DoseRateLevel2 = 0x8001,
+    DoseUnits = 0x8004,
     DoseReset = 0x8007,
+    CountRateLevel1 = 0x8008,  // counts per 10 s
+    CountRateLevel2 = 0x8009,
+    CountRateUnits = 0x8013,
+    DoseLevel1 = 0x8014,       // µrem
+    DoseLevel2 = 0x8015,
     TempDegC = 0x8024,
     ChargerState = 0xC200,
 }

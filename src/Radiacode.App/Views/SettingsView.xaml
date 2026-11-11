@@ -86,7 +86,7 @@
             <TextBlock Style="{StaticResource Value}">
               <Run Text="Radiacode Companion " /><Run Text="{x:Bind ViewModel.VersionText}" />
             </TextBlock>
-            <TextBlock Style="{StaticResource Muted}" Text="Unofficial app — not affiliated with RadiaCode. Protocol based on cdump/radiacode (MIT)." />
+            <TextBlock Style="{StaticResource Muted}" Text="Unofficial app — not affiliated with RadiaCode. Free software under GPL-3.0-or-later. Protocol based on cdump/radiacode (MIT); libusb (LGPL-2.1)." />
           </StackPanel>
         </Border>
       </StackPanel>

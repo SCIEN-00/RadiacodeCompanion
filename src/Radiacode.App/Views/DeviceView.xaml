@@ -5,7 +5,7 @@
     <Grid>
       <Grid Padding="12,0,12,0" ColumnSpacing="12" RowSpacing="12">
         <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
 
         <Border Style="{StaticResource Card}">
           <StackPanel Spacing="10">
@@ -76,6 +76,74 @@
               <Button Content="Reset accumulated dose…" Click="ResetDose_Click" IsEnabled="{x:Bind ViewModel.IsConnected, Mode=OneWay}" />
             </StackPanel>
             <TextBlock Style="{StaticResource Muted}" FontSize="13" Text="Both act on the device itself and ask for confirmation first." />
+          </StackPanel>
+        </Border>
+
+        <!-- Settings stored on the device itself -->
+        <Border Grid.Row="2" Grid.ColumnSpan="2" Style="{StaticResource Card}">
+          <StackPanel Spacing="12">
+            <Grid ColumnSpacing="12">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock Style="{StaticResource CardTitle}" Text="Device settings" />
+                <TextBlock Style="{StaticResource Muted}" FontSize="13" Text="{x:Bind ViewModel.DeviceSettingsText, Mode=OneWay}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+                <Button Content="Reload" Command="{x:Bind ViewModel.ReloadDeviceSettingsCommand}" IsEnabled="{x:Bind ViewModel.IsConnected, Mode=OneWay}" />
+                <Button Content="Write to device" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.ApplyDeviceSettingsCommand}"
+                        IsEnabled="{x:Bind ViewModel.DeviceSettingsLoaded, Mode=OneWay}" />
+              </StackPanel>
+            </Grid>
+
+            <Grid ColumnSpacing="24" RowSpacing="12" IsHitTestVisible="{x:Bind ViewModel.DeviceSettingsLoaded, Mode=OneWay}">
+              <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+
+              <StackPanel Spacing="4">
+                <TextBlock Style="{StaticResource Label}" Text="SOUND &amp; VIBRATION" />
+                <ToggleSwitch Header="Sound" IsOn="{x:Bind ViewModel.DevSoundOn, Mode=TwoWay}" />
+                <CheckBox Content="Click for each detected particle" IsChecked="{x:Bind ViewModel.DevClickSound, Mode=TwoWay}" />
+                <CheckBox Content="Button press sound" IsChecked="{x:Bind ViewModel.DevButtonSound, Mode=TwoWay}" />
+                <ToggleSwitch Header="Vibration" IsOn="{x:Bind ViewModel.DevVibrationOn, Mode=TwoWay}" />
+              </StackPanel>
+
+              <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock Style="{StaticResource Label}" Text="DISPLAY" />
+                <Slider Header="Brightness" Minimum="0" Maximum="9" StepFrequency="1" TickFrequency="1" TickPlacement="BottomRight"
+                        Value="{x:Bind ViewModel.DevBrightness, Mode=TwoWay}" MaxWidth="280" HorizontalAlignment="Left" MinWidth="220" />
+                <ComboBox Header="Turn off after" MinWidth="160" SelectedIndex="{x:Bind ViewModel.DevDisplayOffIndex, Mode=TwoWay}">
+                  <x:String>5 s</x:String>
+                  <x:String>10 s</x:String>
+                  <x:String>15 s</x:String>
+                  <x:String>30 s</x:String>
+                </ComboBox>
+                <ComboBox Header="Orientation" MinWidth="160" SelectedIndex="{x:Bind ViewModel.DevDirectionIndex, Mode=TwoWay}">
+                  <x:String>Automatic</x:String>
+                  <x:String>Right-handed</x:String>
+                  <x:String>Left-handed</x:String>
+                </ComboBox>
+              </StackPanel>
+
+              <StackPanel Grid.Column="2" Spacing="4">
+                <TextBlock Style="{StaticResource Label}" Text="DEVICE ALARM THRESHOLDS" />
+                <Grid ColumnSpacing="8" RowSpacing="8">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                  <TextBlock Grid.Column="1" Style="{StaticResource Muted}" FontSize="13" Text="Level 1" />
+                  <TextBlock Grid.Column="2" Style="{StaticResource Muted}" FontSize="13" Text="Level 2" />
+                  <TextBlock Grid.Row="1" Style="{StaticResource Muted}" VerticalAlignment="Center" Text="Dose rate, nSv/h" />
+                  <NumberBox Grid.Row="1" Grid.Column="1" Minimum="0" Value="{x:Bind ViewModel.DevDoseRateAlarm1, Mode=TwoWay}" />
+                  <NumberBox Grid.Row="1" Grid.Column="2" Minimum="0" Value="{x:Bind ViewModel.DevDoseRateAlarm2, Mode=TwoWay}" />
+                  <TextBlock Grid.Row="2" Style="{StaticResource Muted}" VerticalAlignment="Center" Text="Count rate, cps" />
+                  <NumberBox Grid.Row="2" Grid.Column="1" Minimum="0" Value="{x:Bind ViewModel.DevCountRateAlarm1, Mode=TwoWay}" />
+                  <NumberBox Grid.Row="2" Grid.Column="2" Minimum="0" Value="{x:Bind ViewModel.DevCountRateAlarm2, Mode=TwoWay}" />
+                  <TextBlock Grid.Row="3" Style="{StaticResource Muted}" VerticalAlignment="Center" Text="Dose, µSv" />
+                  <NumberBox Grid.Row="3" Grid.Column="1" Minimum="0" Value="{x:Bind ViewModel.DevDoseAlarm1, Mode=TwoWay}" />
+                  <NumberBox Grid.Row="3" Grid.Column="2" Minimum="0" Value="{x:Bind ViewModel.DevDoseAlarm2, Mode=TwoWay}" />
+                </Grid>
+                <TextBlock Style="{StaticResource Muted}" FontSize="13"
+                           Text="These alarms run on the device itself (sound/vibration/LED), independent of the app's own alarm in Settings. Very large values mean the alarm is effectively off." />
+              </StackPanel>
+            </Grid>
           </StackPanel>
         </Border>
       </Grid>

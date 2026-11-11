@@ -159,22 +159,24 @@ public sealed partial class LineChart : Grid
         int i0 = Math.Max(0, (int)Math.Floor(v0)), i1 = Math.Min(n - 1, (int)Math.Ceiling(v1));
         bool log = LogScale;
         Func<double, double> map = log ? v => Math.Log10(Math.Max(v, 0) + 1) : v => v;
-        double max = 0;
+        double max = 0, lowest = 0;
         for (int i = i0; i <= i1; i++)
         {
             max = Math.Max(max, map(values[i]));
+            lowest = Math.Min(lowest, values[i]);
             if (overlay is not null) max = Math.Max(max, map(overlay[i]));
         }
         if (!double.IsNaN(ReferenceValue)) max = Math.Max(max, map(ReferenceValue));
-        double min = 0;
+        // Linear charts may go below zero (e.g. spectrum minus background); log charts start at 0.
+        double min = log ? 0 : lowest * 1.08;
         if (max <= min) max = min + 1;
-        max *= 1.08;
+        max = max > 0 ? max * 1.08 : max + (max - min) * 0.08;
         (_w, _h, _min, _max, _map) = (w, h, min, max, map);
 
         double Y(double v) => TopPad + (h - TopPad) - (map(v) - min) / (max - min) * (h - TopPad);
         double X(double i) => AxisWidth + (i - v0) / (v1 - v0) * w;
 
-        foreach (var (label, value) in YTicks(max, log, map))
+        foreach (var (label, value) in YTicks(min, max, log, map))
         {
             double y = TopPad + (h - TopPad) - (value - min) / (max - min) * (h - TopPad);
             _canvas.Children.Add(new Line { X1 = AxisWidth, X2 = AxisWidth + w, Y1 = y, Y2 = y, Stroke = GridBrush, StrokeThickness = 1 });
@@ -244,9 +246,10 @@ public sealed partial class LineChart : Grid
         }
 
         var line = Series(values);
-        var area = new PointCollection { new Point(X(v0), h) };
+        double baseY = Math.Clamp(Y(0), TopPad, h);
+        var area = new PointCollection { new Point(X(v0), baseY) };
         foreach (var p in line) area.Add(p);
-        area.Add(new Point(X(v1), h));
+        area.Add(new Point(X(v1), baseY));
 
         var fill = Stroke is SolidColorBrush sb
             ? new SolidColorBrush(Windows.UI.Color.FromArgb(48, sb.Color.R, sb.Color.G, sb.Color.B))
@@ -401,7 +404,7 @@ public sealed partial class LineChart : Grid
         return new[] { 1, 2, 2.5, 5, 10 }.Select(m => m * mag).First(s => s >= raw);
     }
 
-    private static IEnumerable<(string Label, double Mapped)> YTicks(double mappedMax, bool log, Func<double, double> map)
+    private static IEnumerable<(string Label, double Mapped)> YTicks(double mappedMin, double mappedMax, bool log, Func<double, double> map)
     {
         if (log)
         {
@@ -409,8 +412,8 @@ public sealed partial class LineChart : Grid
                 yield return (v >= 1000 ? $"{v / 1000:0}k" : $"{v:0}", map(v));
             yield break;
         }
-        double step = NiceStep(mappedMax / 4);
-        for (double v = 0; v < mappedMax; v += step)
+        double step = NiceStep((mappedMax - mappedMin) / 4);
+        for (double v = Math.Ceiling(mappedMin / step) * step; v < mappedMax; v += step)
             yield return (step < 1 ? v.ToString("0.0#") : v.ToString("0"), v);
     }
 }

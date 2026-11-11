@@ -36,6 +36,10 @@ Pushing a tag `vX.Y.Z` creates a GitHub release with all files and `SHA256SUMS.t
 - **Linux:** the `.deb` installs a udev rule for USB access (`0483:f123`); Bluetooth uses BlueZ.
 - Building: .NET 10 SDK (see `global.json`).
 
+## License
+
+GPL-3.0-or-later — see [LICENSE](LICENSE). You may use, modify and redistribute it, but distributed versions (including modified or sold ones) must stay under the GPL with their source available.
+
 ## Credits
 
 Protocol and decoders ported from [cdump/radiacode](https://github.com/cdump/radiacode) (MIT).

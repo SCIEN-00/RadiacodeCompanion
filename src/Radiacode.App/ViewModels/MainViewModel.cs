@@ -126,7 +126,11 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial string SpectrumExportText { get; set; }
     [ObservableProperty] public partial string CalibrationText { get; set; }
     [ObservableProperty] public partial IReadOnlyList<double>? SpectrumOverlay { get; set; }
-    [ObservableProperty] public partial bool ShowBackground { get; set; }
+    /// <summary>Spectrum page: 0 = spectrum only, 1 = with background overlay, 2 = spectrum minus background.</summary>
+    [ObservableProperty] public partial int BackgroundModeIndex { get; set; }
+    [ObservableProperty] public partial IReadOnlyList<double>? SpectrumPageValues { get; set; }
+    [ObservableProperty] public partial bool SpectrumPageLog { get; set; }
+    public bool HasBackground => _background is not null;
     [ObservableProperty] public partial string BackgroundCompareText { get; set; }
     [ObservableProperty] public partial bool GainCorrectionEnabled { get; set; }
 
@@ -167,6 +171,24 @@ public partial class MainViewModel : ObservableObject
     public string FirmwareDownloadsUrl => FirmwareCatalog.DownloadsUrl;
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
     [ObservableProperty] public partial string SpectrumFormatText { get; set; }
+
+    // ---- device settings (edited copy; written with Apply) ------------------------------------
+    private DeviceSettings? _deviceSettings;
+    [ObservableProperty] public partial bool DeviceSettingsLoaded { get; set; }
+    [ObservableProperty] public partial string DeviceSettingsText { get; set; }
+    [ObservableProperty] public partial bool DevSoundOn { get; set; }
+    [ObservableProperty] public partial bool DevClickSound { get; set; }
+    [ObservableProperty] public partial bool DevButtonSound { get; set; }
+    [ObservableProperty] public partial bool DevVibrationOn { get; set; }
+    [ObservableProperty] public partial double DevBrightness { get; set; }
+    [ObservableProperty] public partial int DevDisplayOffIndex { get; set; }
+    [ObservableProperty] public partial int DevDirectionIndex { get; set; }
+    [ObservableProperty] public partial double DevDoseRateAlarm1 { get; set; }
+    [ObservableProperty] public partial double DevDoseRateAlarm2 { get; set; }
+    [ObservableProperty] public partial double DevCountRateAlarm1 { get; set; }
+    [ObservableProperty] public partial double DevCountRateAlarm2 { get; set; }
+    [ObservableProperty] public partial double DevDoseAlarm1 { get; set; }
+    [ObservableProperty] public partial double DevDoseAlarm2 { get; set; }
     [ObservableProperty] public partial string TransportText { get; set; }
 
     // ---- settings -----------------------------------------------------------------------------
@@ -224,6 +246,7 @@ public partial class MainViewModel : ObservableObject
         FirmwareText = "—";
         FirmwareUpdateText = "Checked after connecting.";
         SpectrumFormatText = "—";
+        DeviceSettingsText = "Read from the device after connecting.";
         TransportText = "—";
 
         ThemeIndex = _settings.Theme;
@@ -370,6 +393,7 @@ public partial class MainViewModel : ObservableObject
         {
             _history.Flush();
             _dev = null;
+            DeviceSettingsLoaded = false;
             _running = false;
             ConnectText = "Connect";
             IsConnected = false;
@@ -421,6 +445,7 @@ public partial class MainViewModel : ObservableObject
         if ((await dev.ReadDataBufAsync(ct)).OfType<RareData>().LastOrDefault() is { } rare) Apply(rare);
         else RestoreLastStatus();
         await ReadStatusAsync(dev, ct);
+        await LoadDeviceSettingsAsync(dev, ct);
 
         _nextSpectrum = DateTime.MinValue;
         while (!ct.IsCancellationRequested)
@@ -640,6 +665,75 @@ public partial class MainViewModel : ObservableObject
             .Select(r => new ChartMarker(r.Line.EnergyKeV, $"{r.Line.Nuclide}\n{r.Significance:0.0} σ", true)).ToArray();
     }
 
+    // ---- device settings ------------------------------------------------------------------------
+    private async Task LoadDeviceSettingsAsync(RadiacodeDevice dev, CancellationToken ct)
+    {
+        try
+        {
+            var s = await dev.ReadSettingsAsync(ct);
+            _deviceSettings = s;
+            DevSoundOn = s.SoundOn;
+            DevClickSound = s.ClickSound;
+            DevButtonSound = s.ButtonSound;
+            DevVibrationOn = s.VibrationOn;
+            DevBrightness = s.Brightness;
+            DevDisplayOffIndex = Math.Max(0, Array.IndexOf(DeviceSettings.OffTimes, s.DisplayOffSeconds));
+            DevDirectionIndex = (int)s.Direction is >= 0 and <= 2 ? (int)s.Direction : 0;
+            DevDoseRateAlarm1 = s.DoseRateAlarm1NSvH;
+            DevDoseRateAlarm2 = s.DoseRateAlarm2NSvH;
+            DevCountRateAlarm1 = s.CountRateAlarm1Cps;
+            DevCountRateAlarm2 = s.CountRateAlarm2Cps;
+            DevDoseAlarm1 = s.DoseAlarm1MicroSv;
+            DevDoseAlarm2 = s.DoseAlarm2MicroSv;
+            DeviceSettingsLoaded = true;
+            DeviceSettingsText = $"Read from the device at {DateTime.Now:HH:mm:ss}.";
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            DeviceSettingsLoaded = false;
+            DeviceSettingsText = $"Could not read device settings: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task ReloadDeviceSettingsAsync()
+    {
+        if (_dev is { } dev) await LoadDeviceSettingsAsync(dev, default);
+    }
+
+    [RelayCommand]
+    private async Task ApplyDeviceSettingsAsync()
+    {
+        if (_dev is not { } dev || _deviceSettings is not { } current) return;
+        static double Valid(double v) => double.IsFinite(v) && v >= 0 ? v : 0;
+        var wanted = current with
+        {
+            SoundOn = DevSoundOn,
+            SoundCtrl = DeviceSettings.WithFlag(DeviceSettings.WithFlag(current.SoundCtrl, NotifyEvents.Clicks, DevClickSound), NotifyEvents.Buttons, DevButtonSound),
+            VibrationOn = DevVibrationOn,
+            Brightness = (uint)Math.Clamp(Math.Round(DevBrightness), 0, 9),
+            DisplayOffSeconds = DeviceSettings.OffTimes[Math.Clamp(DevDisplayOffIndex, 0, 3)],
+            Direction = (DisplayDirection)Math.Clamp(DevDirectionIndex, 0, 2),
+            DoseRateAlarm1NSvH = Valid(DevDoseRateAlarm1),
+            DoseRateAlarm2NSvH = Valid(DevDoseRateAlarm2),
+            CountRateAlarm1Cps = Valid(DevCountRateAlarm1),
+            CountRateAlarm2Cps = Valid(DevCountRateAlarm2),
+            DoseAlarm1MicroSv = Valid(DevDoseAlarm1),
+            DoseAlarm2MicroSv = Valid(DevDoseAlarm2),
+        };
+        try
+        {
+            int n = await dev.WriteSettingsAsync(current, wanted);
+            AddEvent(n == 0 ? "Device settings: nothing changed" : $"Device settings written ({n} value{(n == 1 ? "" : "s")})");
+            await LoadDeviceSettingsAsync(dev, default); // read back what the device actually stored
+        }
+        catch (Exception ex)
+        {
+            DeviceSettingsText = $"Writing settings failed: {ex.Message}";
+            AddEvent(DeviceSettingsText);
+        }
+    }
+
     // ---- alarm ---------------------------------------------------------------------------------
     private void CheckAlarm(double nSvH)
     {
@@ -702,26 +796,50 @@ public partial class MainViewModel : ObservableObject
     private void UpdateBackgroundOverlay()
     {
         var sp = _displaySpectrum;
-        if (!ShowBackground || _background is not { } bg || sp is null || bg.Counts.Length != sp.Counts.Length || bg.DurationSeconds <= 0)
+        int mode = BackgroundModeIndex;
+        SpectrumPageLog = SpectrumLog && mode != 2;
+        if (mode == 0 || _background is not { } bg || sp is null || bg.Counts.Length != sp.Counts.Length || bg.DurationSeconds <= 0)
         {
             SpectrumOverlay = null;
+            SpectrumPageValues = SpectrumCounts;
             BackgroundCompareText = _background is { } b
                 ? $"Background saved {b.Saved:yyyy-MM-dd HH:mm} ({TimeSpan.FromSeconds(b.DurationSeconds).TotalHours:0.#} h, {b.TotalCounts:N0} counts)."
                 : "No background saved yet. Measure a quiet place for an hour or more, then save it.";
+            if (mode != 0 && _background is not null && sp is not null && _background.Counts.Length != sp.Counts.Length)
+                BackgroundCompareText = "The saved background has a different number of channels (other device?).";
             return;
         }
         double k = sp.Duration.TotalSeconds / bg.DurationSeconds;
-        SpectrumOverlay = bg.Counts.Select(c => c * k).ToArray();
+        var scaled = bg.Counts.Select(c => c * k).ToArray();
         double n = sp.TotalCounts, expected = bg.TotalCounts * k;
-        double sigma = (n - expected) / Math.Sqrt(Math.Max(1, n + k * k * bg.TotalCounts));
+        double sigma = Math.Round((n - expected) / Math.Sqrt(Math.Max(1, n + k * k * bg.TotalCounts)), 1);
         double pct = Math.Round(expected > 0 ? (n / expected - 1) * 100 : 0, 1);
-        sigma = Math.Round(sigma, 1);
-        BackgroundCompareText = $"Grey line = background from {bg.Saved:yyyy-MM-dd HH:mm}, scaled to this measuring time. " +
-                                $"Total counts {pct:+0.0;-0.0;0.0} % vs background ({sigma:+0.0;-0.0;0.0} σ).";
+        string totals = $"Total counts {pct:+0.0;-0.0;0.0} % vs background ({sigma:+0.0;-0.0;0.0} σ).";
+        if (mode == 1)
+        {
+            SpectrumOverlay = scaled;
+            SpectrumPageValues = SpectrumCounts;
+            BackgroundCompareText = $"Grey line = background from {bg.Saved:yyyy-MM-dd HH:mm}, scaled to this measuring time. {totals}";
+        }
+        else
+        {
+            // Difference per channel is very noisy at background levels; a 7-channel moving average keeps peaks visible.
+            const int half = 3;
+            var diff = new double[sp.Counts.Length];
+            for (int i = 0; i < diff.Length; i++)
+            {
+                double sum = 0; int cnt = 0;
+                for (int j = Math.Max(0, i - half); j <= Math.Min(diff.Length - 1, i + half); j++) { sum += sp.Counts[j] - scaled[j]; cnt++; }
+                diff[i] = sum / cnt;
+            }
+            SpectrumOverlay = null;
+            SpectrumPageValues = diff;
+            BackgroundCompareText = $"Spectrum minus background from {bg.Saved:yyyy-MM-dd HH:mm} (scaled, 7-channel average). Above zero = more than background. {totals}";
+        }
     }
 
-    partial void OnShowBackgroundChanged(bool value) => UpdateBackgroundOverlay();
-
+    partial void OnBackgroundModeIndexChanged(int value) => UpdateBackgroundOverlay();
+    partial void OnSpectrumLogChanged(bool value) => UpdateBackgroundOverlay();
     partial void OnGainCorrectionEnabledChanged(bool value)
     {
         _settings.GainCorrection = value;
@@ -737,7 +855,8 @@ public partial class MainViewModel : ObservableObject
         {
             _background = BackgroundSpectrum.From(sp, Serial);
             _background.Save();
-            ShowBackground = true;
+            BackgroundModeIndex = Math.Max(BackgroundModeIndex, 1);
+            OnPropertyChanged(nameof(HasBackground));
             UpdateBackgroundOverlay();
             AddEvent($"Background saved ({sp.Duration.TotalHours:0.#} h, {sp.TotalCounts:N0} counts)");
         }

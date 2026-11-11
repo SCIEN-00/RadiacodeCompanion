@@ -6,6 +6,8 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <Authors>Lauri</Authors>
     <Product>Radiacode Companion</Product>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <Copyright>Copyright © 2026 Lauri</Copyright>
     <!-- CI overrides this with the tag version (v1.2.3 -> 1.2.3). -->
     <Version>0.1.0</Version>
     <!-- Lets Linux CI restore the Windows target frameworks of multi-targeted projects. -->

@@ -1,0 +1,95 @@
+namespace Radiacode.Core;
+
+/// <summary>Event flags used by the device's sound/vibration control registers (cdump/radiacode CTRL).</summary>
+[Flags]
+public enum NotifyEvents : uint
+{
+    Buttons = 1 << 0,
+    Clicks = 1 << 1,           // one click per detected particle (sound only)
+    DoseRateAlarm1 = 1 << 2,
+    DoseRateAlarm2 = 1 << 3,
+    DoseRateOutOfScale = 1 << 4,
+    DoseAlarm1 = 1 << 5,
+    DoseAlarm2 = 1 << 6,
+    DoseOutOfScale = 1 << 7,
+}
+
+public enum DisplayDirection : uint { Auto = 0, Right = 1, Left = 2 }
+
+/// <summary>
+/// User-facing device settings in friendly units. Raw register units: dose rate µrem/h (×10 = nSv/h),
+/// dose µrem (÷100 = µSv), count rate counts per 10 s (÷10 = cps). Seen on RC-110 firmware 4.15.
+/// The sound/vibration control registers carry more bits than are known; unknown bits are preserved on write.
+/// </summary>
+public sealed record DeviceSettings
+{
+    public bool SoundOn { get; init; }
+    public uint SoundCtrl { get; init; }
+    public bool VibrationOn { get; init; }
+    public uint VibroCtrl { get; init; }
+    public uint Brightness { get; init; }            // 0–9
+    public uint DisplayOffSeconds { get; init; }     // 5, 10, 15 or 30
+    public DisplayDirection Direction { get; init; }
+    public double DoseRateAlarm1NSvH { get; init; }
+    public double DoseRateAlarm2NSvH { get; init; }
+    public double CountRateAlarm1Cps { get; init; }
+    public double CountRateAlarm2Cps { get; init; }
+    public double DoseAlarm1MicroSv { get; init; }
+    public double DoseAlarm2MicroSv { get; init; }
+
+    public bool ClickSound => (SoundCtrl & (uint)NotifyEvents.Clicks) != 0;
+    public bool ButtonSound => (SoundCtrl & (uint)NotifyEvents.Buttons) != 0;
+
+    public static readonly uint[] OffTimes = [5, 10, 15, 30];
+
+    /// <summary>Registers this record maps to, in read order.</summary>
+    internal static readonly Vsfr[] Registers =
+    [
+        Vsfr.SoundOn, Vsfr.SoundCtrl, Vsfr.VibroOn, Vsfr.VibroCtrl, Vsfr.DisplayBrightness, Vsfr.DisplayOffTime,
+        Vsfr.DisplayDirection, Vsfr.DoseRateLevel1, Vsfr.DoseRateLevel2, Vsfr.CountRateLevel1, Vsfr.CountRateLevel2,
+        Vsfr.DoseLevel1, Vsfr.DoseLevel2,
+    ];
+
+    internal static DeviceSettings FromRaw(IReadOnlyDictionary<Vsfr, uint> r) => new()
+    {
+        SoundOn = r[Vsfr.SoundOn] != 0,
+        SoundCtrl = r[Vsfr.SoundCtrl],
+        VibrationOn = r[Vsfr.VibroOn] != 0,
+        VibroCtrl = r[Vsfr.VibroCtrl],
+        Brightness = r[Vsfr.DisplayBrightness],
+        DisplayOffSeconds = r[Vsfr.DisplayOffTime] < OffTimes.Length ? OffTimes[r[Vsfr.DisplayOffTime]] : 10,
+        Direction = (DisplayDirection)r[Vsfr.DisplayDirection],
+        DoseRateAlarm1NSvH = r[Vsfr.DoseRateLevel1] * 10.0,
+        DoseRateAlarm2NSvH = r[Vsfr.DoseRateLevel2] * 10.0,
+        CountRateAlarm1Cps = r[Vsfr.CountRateLevel1] / 10.0,
+        CountRateAlarm2Cps = r[Vsfr.CountRateLevel2] / 10.0,
+        DoseAlarm1MicroSv = r[Vsfr.DoseLevel1] / 100.0,
+        DoseAlarm2MicroSv = r[Vsfr.DoseLevel2] / 100.0,
+    };
+
+    internal IReadOnlyDictionary<Vsfr, uint> ToRaw()
+    {
+        int offIndex = Array.IndexOf(OffTimes, DisplayOffSeconds);
+        return new Dictionary<Vsfr, uint>
+        {
+            [Vsfr.SoundOn] = SoundOn ? 1u : 0u,
+            [Vsfr.SoundCtrl] = SoundCtrl,
+            [Vsfr.VibroOn] = VibrationOn ? 1u : 0u,
+            [Vsfr.VibroCtrl] = VibroCtrl & ~(uint)NotifyEvents.Clicks,
+            [Vsfr.DisplayBrightness] = Math.Min(Brightness, 9u),
+            [Vsfr.DisplayOffTime] = (uint)(offIndex < 0 ? 1 : offIndex),
+            [Vsfr.DisplayDirection] = (uint)Direction,
+            [Vsfr.DoseRateLevel1] = ToRaw(DoseRateAlarm1NSvH / 10.0),
+            [Vsfr.DoseRateLevel2] = ToRaw(DoseRateAlarm2NSvH / 10.0),
+            [Vsfr.CountRateLevel1] = ToRaw(CountRateAlarm1Cps * 10.0),
+            [Vsfr.CountRateLevel2] = ToRaw(CountRateAlarm2Cps * 10.0),
+            [Vsfr.DoseLevel1] = ToRaw(DoseAlarm1MicroSv * 100.0),
+            [Vsfr.DoseLevel2] = ToRaw(DoseAlarm2MicroSv * 100.0),
+        };
+    }
+
+    private static uint ToRaw(double v) => (uint)Math.Clamp(Math.Round(v), 0, 999_999_999);
+
+    /// <summary>Sets or clears one event bit, keeping all other (including unknown) bits.</summary>
+    public static uint WithFlag(uint ctrl, NotifyEvents flag, bool on) => on ? ctrl | (uint)flag : ctrl & ~(uint)flag;
+}

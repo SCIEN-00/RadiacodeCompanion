@@ -36,7 +36,12 @@
             </StackPanel>
             <StackPanel x:Name="SpectrumActions" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
               <ToggleSwitch OnContent="Log" OffContent="Linear" MinWidth="0" IsOn="{x:Bind ViewModel.SpectrumLog, Mode=TwoWay}" />
-              <ToggleSwitch OnContent="Background" OffContent="Background" MinWidth="0" IsOn="{x:Bind ViewModel.ShowBackground, Mode=TwoWay}" />
+              <ComboBox MinWidth="190" SelectedIndex="{x:Bind ViewModel.BackgroundModeIndex, Mode=TwoWay}" VerticalAlignment="Center"
+                        ToolTipService.ToolTip="Compare with the saved background spectrum">
+                <x:String>Spectrum</x:String>
+                <x:String>With background</x:String>
+                <x:String>Minus background</x:String>
+              </ComboBox>
               <Button Content="Save as background…" Click="SaveBackground_Click" />
               <Button Content="Export CSV" Command="{x:Bind ViewModel.ExportSpectrumCommand}" />
               <Button Content="Reset spectrum…" Click="ResetSpectrum_Click" IsEnabled="{x:Bind ViewModel.IsConnected, Mode=OneWay}" />
@@ -44,8 +49,8 @@
           </Grid>
           <controls:LineChart Grid.Row="1" MinHeight="320" Unit="counts / channel"
                               Stroke="{StaticResource AccentBrush}"
-                              LogScale="{x:Bind ViewModel.SpectrumLog, Mode=OneWay}"
-                              Values="{x:Bind ViewModel.SpectrumCounts, Mode=OneWay}"
+                              LogScale="{x:Bind ViewModel.SpectrumPageLog, Mode=OneWay}"
+                              Values="{x:Bind ViewModel.SpectrumPageValues, Mode=OneWay}"
                               Overlay="{x:Bind ViewModel.SpectrumOverlay, Mode=OneWay}"
                               XValue="{x:Bind ViewModel.SpectrumX, Mode=OneWay}"
                               XFormat="{x:Bind ViewModel.KeVFormat}" Zoomable="True"
