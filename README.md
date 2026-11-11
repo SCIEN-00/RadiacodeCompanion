@@ -6,6 +6,8 @@ Not affiliated with Radiacode Ltd.
 Live dose rate, count rate and energy spectrum over **USB or Bluetooth LE**, isotope line hints, K-40 gain
 self-calibration, background comparison, dose-rate alarms with desktop notifications, history saved to disk,
 CSV export and a firmware-update check.
+<img width="1426" height="836" alt="image" src="https://github.com/user-attachments/assets/374fe068-a0eb-4a73-ad99-cd056613b4e9" />
+
 
 ## Layout
 
