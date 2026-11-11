@@ -12,6 +12,14 @@ internal static class Notifier
     /// <summary>Last failure, for diagnostics (null when the last notification was handed over fine).</summary>
     public static string? LastError { get; private set; }
 
+#if WINDOWS10_0_17763_0_OR_GREATER
+    private static bool IsPackaged()
+    {
+        try { return Windows.ApplicationModel.Package.Current is not null; }
+        catch { return false; }
+    }
+#endif
+
     public static void Show(string title, string body, bool urgent)
     {
         try
@@ -24,8 +32,16 @@ internal static class Notifier
                 // so register with both instead of the parameterless Register().
                 // The docs require a NotificationInvoked handler before Register(); clicking a toast just shows the app.
                 manager.NotificationInvoked += (_, _) => App.MainWindow?.DispatcherQueue.TryEnqueue(() => App.MainWindow?.Activate());
-                var icon = Path.Combine(AppContext.BaseDirectory, "Assets", "Icons", "icon_foreground.scale-200.png");
-                manager.Register("Radiacode Companion", new Uri(icon));
+                if (IsPackaged())
+                {
+                    // MSIX (Store) build: identity, name and icon come from the package manifest.
+                    manager.Register();
+                }
+                else
+                {
+                    var icon = Path.Combine(AppContext.BaseDirectory, "Assets", "Icons", "icon_foreground.scale-200.png");
+                    manager.Register("Radiacode Companion", new Uri(icon));
+                }
                 _registered = true;
                 AppDomain.CurrentDomain.ProcessExit += (_, _) => { try { manager.Unregister(); } catch { } };
             }

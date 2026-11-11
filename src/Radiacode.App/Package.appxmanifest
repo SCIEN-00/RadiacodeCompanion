@@ -1,16 +1,22 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="uap rescap">
+  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  IgnorableNamespaces="uap rescap com desktop">
 
-  <Identity />
-  <Properties />
+  <!-- Microsoft Store identity (Partner Center > Radiacode Companion > Product identity). -->
+  <Identity Name="25158THOR-00.RadiacodeCompanion" Publisher="CN=C5E6CB5D-978F-4A2F-8FB8-4FABD0E69398" />
+  <Properties>
+    <DisplayName>Radiacode Companion</DisplayName>
+    <PublisherDisplayName>SCIENindustries</PublisherDisplayName>
+  </Properties>
 
   <Dependencies>
-    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.17763.0" MaxVersionTested="10.0.19041.0" />
-    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.19041.0" />
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
   </Dependencies>
 
   <Resources>
@@ -21,13 +27,28 @@
     <Application Id="App"
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
-      <uap:VisualElements  DisplayName="RadiaCode" Description="RadiaCode companion app">
+      <uap:VisualElements DisplayName="Radiacode Companion" Description="Unofficial companion app for RadiaCode detectors">
         <uap:DefaultTile/>
-      </uap:VisualElements >
+      </uap:VisualElements>
+      <Extensions>
+        <!-- Lets the packaged app receive clicks on its toast notifications. -->
+        <desktop:Extension Category="windows.toastNotificationActivation">
+          <desktop:ToastNotificationActivation ToastActivatorCLSID="C947A65C-EE2E-45B4-920E-9F3CF94E9F1C" />
+        </desktop:Extension>
+        <com:Extension Category="windows.comServer">
+          <com:ComServer>
+            <com:ExeServer Executable="Radiacode.App.exe" Arguments="----AppNotificationActivated:" DisplayName="Radiacode Companion">
+              <com:Class Id="C947A65C-EE2E-45B4-920E-9F3CF94E9F1C" />
+            </com:ExeServer>
+          </com:ComServer>
+        </com:Extension>
+      </Extensions>
     </Application>
   </Applications>
 
   <Capabilities>
+    <Capability Name="internetClient" />
     <rescap:Capability Name="runFullTrust" />
+    <DeviceCapability Name="bluetooth" />
   </Capabilities>
 </Package>

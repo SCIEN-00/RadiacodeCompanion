@@ -105,6 +105,21 @@ jobs:
         with:
           name: radiacode-companion-${{ matrix.rid }}
           path: dist/*
+      # Unsigned MSIX for Microsoft Store upload (the Store signs it). Not part of the GitHub release.
+      - name: Store package (.msix)
+        shell: pwsh
+        run: |
+          dotnet build src/Radiacode.App/Radiacode.App.csproj -c Release -f net10.0-windows10.0.26100 `
+            -r ${{ matrix.rid }} -p:Platform=${{ matrix.platform }} --self-contained `
+            -p:WindowsPackageType=MSIX -p:GenerateAppxPackageOnBuild=true -p:AppxPackageSigningEnabled=false `
+            -p:AppxBundle=Never -p:ApplicationDisplayVersion=$env:VERSION -p:ApplicationVersion=0 `
+            -p:AppxPackageDir="$pwd/msix/"
+          New-Item -ItemType Directory store -Force | Out-Null
+          Get-ChildItem msix -Recurse -Filter *.msix | Copy-Item -Destination "store/radiacode-companion_$($env:VERSION)_${{ matrix.rid }}.msix"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: store-msix-${{ matrix.rid }}
+          path: store/*.msix
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -116,6 +131,7 @@ jobs:
       - uses: actions/download-artifact@v5
         with:
           path: dist
+          pattern: radiacode-companion-*
           merge-multiple: true
       - name: Checksums
         run: cd dist && sha256sum * > SHA256SUMS.txt
