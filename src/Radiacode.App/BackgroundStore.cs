@@ -26,14 +26,14 @@ public sealed class BackgroundSpectrum
 
     public static BackgroundSpectrum? Load()
     {
-        try { return JsonSerializer.Deserialize<BackgroundSpectrum>(File.ReadAllText(FilePath)); }
+        try { return JsonSerializer.Deserialize(File.ReadAllText(FilePath), AppJsonContext.Default.BackgroundSpectrum); }
         catch { return null; }
     }
 
     public void Save()
     {
         Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-        File.WriteAllText(FilePath, JsonSerializer.Serialize(this));
+        File.WriteAllText(FilePath, JsonSerializer.Serialize(this, AppJsonContext.Default.BackgroundSpectrum));
     }
 
     public static void Delete()

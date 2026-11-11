@@ -638,11 +638,13 @@ public partial class MainViewModel : ObservableObject
         _displaySpectrum = sp;
 
         SpectrumX = ch => sp.EnergyKeV(ch);
-        SpectrumCounts = sp.Counts.Select(c => (double)c).ToArray();
+        // The last channel is the detector's overflow bin: it collects every event above the top of the
+        // energy range (mostly cosmic muons), so it is far above its neighbours. Not drawn; CSV export keeps it.
+        SpectrumCounts = sp.Counts.Take(DisplayedChannels(sp)).Select(c => (double)c).ToArray();
         UpdateBackgroundOverlay();
         var d = sp.Duration;
         SpectrumInfo = $"{(int)d.TotalHours}:{d.Minutes:00}:{d.Seconds:00} · {sp.TotalCounts:N0} counts · " +
-                       $"{sp.AverageCountRate:F2} cps · {sp.EnergyKeV(0):F0}–{sp.EnergyKeV(sp.Counts.Length - 1):F0} keV";
+                       $"{sp.AverageCountRate:F2} cps · {sp.EnergyKeV(0):F0}–{sp.EnergyKeV(DisplayedChannels(sp) - 1):F0} keV";
         CalibrationText = $"E = {raw.A0:F2} + {raw.A1:F4}·ch + {raw.A2:0.###E+0}·ch²  keV" + (_gainFix is { } g
             ? $" · K-40 found at {g.FoundKeV:F0} keV → gain ×{g.Factor:F3} applied"
             : GainCorrectionEnabled ? " · no clear K-40 peak yet, gain not corrected" : "");
@@ -810,7 +812,7 @@ public partial class MainViewModel : ObservableObject
             return;
         }
         double k = sp.Duration.TotalSeconds / bg.DurationSeconds;
-        var scaled = bg.Counts.Select(c => c * k).ToArray();
+        var scaled = bg.Counts.Take(DisplayedChannels(sp)).Select(c => c * k).ToArray();
         double n = sp.TotalCounts, expected = bg.TotalCounts * k;
         double sigma = Math.Round((n - expected) / Math.Sqrt(Math.Max(1, n + k * k * bg.TotalCounts)), 1);
         double pct = Math.Round(expected > 0 ? (n / expected - 1) * 100 : 0, 1);
@@ -825,7 +827,7 @@ public partial class MainViewModel : ObservableObject
         {
             // Difference per channel is very noisy at background levels; a 7-channel moving average keeps peaks visible.
             const int half = 3;
-            var diff = new double[sp.Counts.Length];
+            var diff = new double[DisplayedChannels(sp)];
             for (int i = 0; i < diff.Length; i++)
             {
                 double sum = 0; int cnt = 0;
@@ -837,6 +839,9 @@ public partial class MainViewModel : ObservableObject
             BackgroundCompareText = $"Spectrum minus background from {bg.Saved:yyyy-MM-dd HH:mm} (scaled, 7-channel average). Above zero = more than background. {totals}";
         }
     }
+
+    /// <summary>Channels drawn on the chart: all but the last (overflow) channel.</summary>
+    private static int DisplayedChannels(Radiacode.Core.Spectrum sp) => Math.Max(1, sp.Counts.Length - 1);
 
     partial void OnBackgroundModeIndexChanged(int value) => UpdateBackgroundOverlay();
     partial void OnSpectrumLogChanged(bool value) => UpdateBackgroundOverlay();

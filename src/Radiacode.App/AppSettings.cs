@@ -23,14 +23,12 @@ public sealed class AppSettings
     /// <summary>Count rate that gives the logo its "resting" pulse (typical indoor background).</summary>
     public double BackgroundCps { get; set; } = 9.0;
 
-    private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
-
     public static string FilePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RadiacodeCompanion", "settings.json");
 
     public static AppSettings Load()
     {
-        try { return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath), Options) ?? new(); }
+        try { return JsonSerializer.Deserialize(File.ReadAllText(FilePath), AppJsonContext.Default.AppSettings) ?? new(); }
         catch { return new(); }
     }
 
@@ -39,7 +37,7 @@ public sealed class AppSettings
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(this, Options));
+            File.WriteAllText(FilePath, JsonSerializer.Serialize(this, AppJsonContext.Default.AppSettings));
         }
         catch
         {
