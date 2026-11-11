@@ -78,7 +78,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rid: [win-x64, win-arm64]
+        include:
+          - rid: win-x64
+            platform: x64
+          - rid: win-arm64
+            platform: ARM64
     env:
       VERSION: ${{ needs.version.outputs.version }}
     steps:
@@ -90,7 +94,7 @@ jobs:
         shell: pwsh
         run: >
           dotnet publish src/Radiacode.App/Radiacode.App.csproj -c Release -f net10.0-windows10.0.26100
-          -r ${{ matrix.rid }} --self-contained -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true
+          -r ${{ matrix.rid }} -p:Platform=${{ matrix.platform }} --self-contained -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true
           -p:Version=$env:VERSION -o out/${{ matrix.rid }}
       - name: Package (.zip)
         shell: pwsh
