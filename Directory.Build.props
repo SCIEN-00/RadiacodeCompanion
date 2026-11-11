@@ -8,6 +8,8 @@
     <Product>Radiacode Companion</Product>
     <!-- CI overrides this with the tag version (v1.2.3 -> 1.2.3). -->
     <Version>0.1.0</Version>
+    <!-- Lets Linux CI restore the Windows target frameworks of multi-targeted projects. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <NoWarn>$(NoWarn);NU1507;NETSDK1201;PRI257</NoWarn>
   </PropertyGroup>
 </Project>
