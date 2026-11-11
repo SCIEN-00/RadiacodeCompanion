@@ -31,4 +31,11 @@ public class FirmwareFrameTests
     [InlineData((ushort)0x4040, true)]   // captured while on USB power, FW 4.15
     public void ChargingBit(ushort flags, bool charging) =>
         Assert.Equal(charging, new RealTimeData(Base, 8.5f, 4.4f, 0.005f, 15f, flags, 0).IsCharging);
+
+    [Theory]
+    [InlineData((ushort)0x0040, false)]
+    [InlineData((ushort)0x2040, true)]   // on USB power at 100 %, not charging
+    [InlineData((ushort)0x4040, true)]   // charging
+    public void ExternalPowerBits(ushort flags, bool powered) =>
+        Assert.Equal(powered, new RealTimeData(Base, 8.5f, 4.4f, 0.005f, 15f, flags, 0).IsOnExternalPower);
 }

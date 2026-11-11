@@ -22,6 +22,9 @@ public sealed record RealTimeData(
     /// <summary>Status bit 0x4000: set while the battery is charging (observed on RC-110 FW 4.15 together with ChargeStart/ChargeStop events).</summary>
     public bool IsCharging => (Flags & 0x4000) != 0;
 
+    /// <summary>Status bit 0x2000: on USB power but not charging (battery full). Observed on RC-110 FW 4.15.</summary>
+    public bool IsOnExternalPower => (Flags & 0x6000) != 0;
+
     public double DoseRateMicroSvH => DoseRateRaw * Units.RoentgenToMicroSievert;
     public double DoseRateNanoSvH => DoseRateMicroSvH * 1000.0;
 

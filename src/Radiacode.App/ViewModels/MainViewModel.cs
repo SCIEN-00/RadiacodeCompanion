@@ -46,7 +46,7 @@ public partial class MainViewModel : ObservableObject
     private DateTime _doseReportedAt;
     private DateTime? _lastRealTime;
     private double? _batteryPercent;
-    private bool _charging;
+    private bool _charging, _externalPower;
 
 
     // ---- connection state -------------------------------------------------------------------
@@ -95,6 +95,15 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial string DoseText { get; set; }
     [ObservableProperty] public partial string DoseDurationText { get; set; }
     [ObservableProperty] public partial string BatteryText { get; set; }
+    /// <summary>Windows battery glyph (Segoe Fluent Icons / Uno Fluent font, same code points).</summary>
+    [ObservableProperty] public partial string BatteryGlyph { get; set; }
+    [ObservableProperty] public partial string BatteryStateText { get; set; }
+    /// <summary>Battery icon colour: green when charging or ≥ 50 %, amber 20–50 %, red below 20 % (readable in light and dark theme).</summary>
+    [ObservableProperty] public partial Brush BatteryBrush { get; set; }
+    private static readonly Brush BatteryGreen = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x2E, 0xA0, 0x43));
+    private static readonly Brush BatteryAmber = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0xD2, 0x99, 0x22));
+    private static readonly Brush BatteryRed = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0xE5, 0x53, 0x4B));
+    private static readonly Brush BatteryNeutral = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x8A, 0x8A, 0x8A));
     [ObservableProperty] public partial string TemperatureText { get; set; }
     [ObservableProperty] public partial string LastReadingText { get; set; }
 
@@ -192,6 +201,9 @@ public partial class MainViewModel : ObservableObject
         DoseText = "—";
         DoseDurationText = "";
         BatteryText = "—";
+        BatteryGlyph = "";
+        BatteryStateText = "Battery";
+        BatteryBrush = BatteryNeutral;
         TemperatureText = "—";
         LastReadingText = "";
         PulseSpeed = 1.0;
@@ -407,6 +419,7 @@ public partial class MainViewModel : ObservableObject
 
         // Backlog: skip old real-time values, but keep the latest status (dose, battery, temperature).
         if ((await dev.ReadDataBufAsync(ct)).OfType<RareData>().LastOrDefault() is { } rare) Apply(rare);
+        else RestoreLastStatus();
         await ReadStatusAsync(dev, ct);
 
         _nextSpectrum = DateTime.MinValue;
@@ -469,8 +482,40 @@ public partial class MainViewModel : ObservableObject
 
     }
 
-    private void UpdateBatteryText() =>
-        BatteryText = (_batteryPercent is { } p ? $"{p:F0} %" : "—") + (_charging ? " · charging" : "");
+    /// <summary>
+    /// The device only sends battery % and its dose counter now and then (rare-data records). When a quick reconnect
+    /// finds none in the buffer, show the last values seen for this device until a fresh record arrives.
+    /// </summary>
+    private void RestoreLastStatus()
+    {
+        if (_settings.LastStatus is not { } s || s.Serial != Serial || (DateTime.Now - s.Time).TotalHours > 12) return;
+        _batteryPercent = s.BatteryPercent;
+        UpdateBatteryText();
+        _doseMicroSv = s.DoseMicroSv;
+        _doseDuration = TimeSpan.FromSeconds(s.DurationSeconds) + (DateTime.Now - s.Time);
+        _doseReportedAt = DateTime.Now;
+        UpdateDoseText(DateTime.Now);
+        AddEvent($"Battery and dose from {s.Time:HH:mm} (device has not reported them yet)");
+    }
+
+    private void UpdateBatteryText()
+    {
+        BatteryText = _batteryPercent is { } p ? $"{p:F0} %" : "—";
+        // Same glyphs as the Windows taskbar (Segoe Fluent Icons; Uno's Fluent font uses the same code points):
+        // Battery0–9 = E850–E859, Battery10 = E83F; BatteryCharging0–8 = E85A–E862, BatteryCharging9 = E83E,
+        // BatteryCharging10 = EA93.
+        int level = (int)Math.Round(Math.Clamp(_batteryPercent ?? 0, 0, 100) / 10);
+        bool plugged = _charging || _externalPower;
+        int glyph = plugged
+            ? level switch { 10 => 0xEA93, 9 => 0xE83E, _ => 0xE85A + level }
+            : level == 10 ? 0xE83F : 0xE850 + level;
+        BatteryGlyph = ((char)glyph).ToString();
+        BatteryStateText = _charging ? "Charging" : _externalPower ? "On USB power (full)" : "On battery";
+        BatteryBrush = _batteryPercent is not { } pct ? BatteryNeutral
+            : plugged || pct >= 50 ? BatteryGreen
+            : pct >= 20 ? BatteryAmber
+            : BatteryRed;
+    }
 
     private void UpdateDoseText(DateTime now)
     {
@@ -494,7 +539,12 @@ public partial class MainViewModel : ObservableObject
                 DoseRateState = rt.DoseRateNanoSvH < level / 2 ? "Normal background" : rt.DoseRateNanoSvH < level ? "Elevated" : "Above alarm level";
                 CheckAlarm(rt.DoseRateNanoSvH);
                 LastReadingText = rt.Timestamp.ToString("HH:mm:ss");
-                if (rt.IsCharging != _charging) { _charging = rt.IsCharging; UpdateBatteryText(); }
+                if (rt.IsCharging != _charging || rt.IsOnExternalPower != _externalPower)
+                {
+                    _charging = rt.IsCharging;
+                    _externalPower = rt.IsOnExternalPower;
+                    UpdateBatteryText();
+                }
                 ReadingReceived?.Invoke();
                 var now = DateTime.Now;
                 (DoseX, DoseHistory) = Push(_dose, now, rt.DoseRateNanoSvH); // X first: the chart redraws on each assignment
@@ -526,6 +576,8 @@ public partial class MainViewModel : ObservableObject
                 _batteryPercent = rd.ChargePercent;
                 UpdateBatteryText();
                 TemperatureText = $"{rd.TemperatureC:F1} °C";
+                _settings.LastStatus = new DeviceStatusCache(Serial, DateTime.Now, rd.ChargePercent, rd.DoseMicroSv, rd.DurationSeconds);
+                _settings.Save();
                 break;
 
             case DeviceEvent ev:

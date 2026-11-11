@@ -73,8 +73,11 @@
           </StackPanel>
         </Grid>
         <StackPanel x:Name="HeaderBattery" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-          <TextBlock FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Text="Battery" />
-          <TextBlock FontSize="16" Text="{x:Bind ViewModel.BatteryText, Mode=OneWay}" />
+          <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="18" VerticalAlignment="Center"
+                    Glyph="{x:Bind ViewModel.BatteryGlyph, Mode=OneWay}" Foreground="{x:Bind ViewModel.BatteryBrush, Mode=OneWay}"
+                    ToolTipService.ToolTip="{x:Bind ViewModel.BatteryStateText, Mode=OneWay}" />
+          <TextBlock FontSize="16" VerticalAlignment="Center" Text="{x:Bind ViewModel.BatteryText, Mode=OneWay}"
+                     ToolTipService.ToolTip="{x:Bind ViewModel.BatteryStateText, Mode=OneWay}" />
         </StackPanel>
         <StackPanel x:Name="HeaderDetector" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
           <TextBlock FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Text="Detector" />

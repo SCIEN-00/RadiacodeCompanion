@@ -12,6 +12,8 @@ public sealed class AppSettings
     public int Connection { get; set; }
     /// <summary>Serial of the last connected device; preferred when several are found.</summary>
     public string? LastDevice { get; set; }
+    /// <summary>Last battery/dose report, used until the device sends a new one after reconnecting.</summary>
+    public DeviceStatusCache? LastStatus { get; set; }
     /// <summary>Correct the energy scale using the K-40 peak.</summary>
     public bool GainCorrection { get; set; } = true;
     public bool AlarmEnabled { get; set; } = true;
@@ -45,3 +47,5 @@ public sealed class AppSettings
         }
     }
 }
+
+public sealed record DeviceStatusCache(string Serial, DateTime Time, double BatteryPercent, double DoseMicroSv, double DurationSeconds);

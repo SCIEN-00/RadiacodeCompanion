@@ -197,7 +197,9 @@ public sealed partial class LineChart : Grid
                 if (x < AxisWidth - 1 || x > AxisWidth + w + 1) continue;
                 _canvas.Children.Add(new Line { X1 = x, X2 = x, Y1 = h, Y2 = h + 4, Stroke = LabelBrush, StrokeThickness = 1 });
                 var tb = new TextBlock { FontFamily = CardFont, Text = fmt(Math.Abs(t) < step * 1e-6 ? 0 : t), FontSize = 14, Foreground = LabelBrush, Width = 90, TextAlignment = TextAlignment.Center };
-                Canvas.SetLeft(tb, x - 45);
+                // Keep edge labels (e.g. "now" at the right end) inside the chart instead of clipping them.
+                if (x + 45 > AxisWidth + w) { tb.TextAlignment = TextAlignment.Right; Canvas.SetLeft(tb, AxisWidth + w - 90); }
+                else Canvas.SetLeft(tb, Math.Max(AxisWidth - 6, x - 45));
                 Canvas.SetTop(tb, h + 5);
                 _canvas.Children.Add(tb);
             }

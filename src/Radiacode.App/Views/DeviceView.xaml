@@ -40,7 +40,12 @@
               <Grid.ColumnDefinitions><ColumnDefinition Width="160" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
               <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
               <TextBlock Style="{StaticResource Muted}" Text="Battery" />
-              <TextBlock Grid.Column="1" Style="{StaticResource Value}" Text="{x:Bind ViewModel.BatteryText, Mode=OneWay}" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="18" VerticalAlignment="Center" Glyph="{x:Bind ViewModel.BatteryGlyph, Mode=OneWay}" Foreground="{x:Bind ViewModel.BatteryBrush, Mode=OneWay}" />
+                <TextBlock Style="{StaticResource Value}" VerticalAlignment="Center">
+                  <Run Text="{x:Bind ViewModel.BatteryText, Mode=OneWay}" /><Run Text=" · " /><Run Text="{x:Bind ViewModel.BatteryStateText, Mode=OneWay}" />
+                </TextBlock>
+              </StackPanel>
               <TextBlock Grid.Row="1" Style="{StaticResource Muted}" Text="Temperature" />
               <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Value}" Text="{x:Bind ViewModel.TemperatureText, Mode=OneWay}" />
               <TextBlock Grid.Row="2" Style="{StaticResource Muted}" Text="Accumulated dose" />
