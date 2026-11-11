@@ -101,9 +101,11 @@
               <StackPanel Spacing="4">
                 <TextBlock Style="{StaticResource Label}" Text="SOUND &amp; VIBRATION" />
                 <ToggleSwitch Header="Sound" IsOn="{x:Bind ViewModel.DevSoundOn, Mode=TwoWay}" />
-                <CheckBox Content="Click for each detected particle" IsChecked="{x:Bind ViewModel.DevClickSound, Mode=TwoWay}" />
+                <CheckBox Content="Click sound for each detected particle" IsChecked="{x:Bind ViewModel.DevClickSound, Mode=TwoWay}" />
                 <CheckBox Content="Button press sound" IsChecked="{x:Bind ViewModel.DevButtonSound, Mode=TwoWay}" />
                 <ToggleSwitch Header="Vibration" IsOn="{x:Bind ViewModel.DevVibrationOn, Mode=TwoWay}" />
+                <TextBlock Style="{StaticResource Muted}" FontSize="13"
+                           Text="Clicks are only heard when Sound is on. The LED flashes for every particle regardless; this firmware (4.15) has no setting for it." />
               </StackPanel>
 
               <StackPanel Grid.Column="1" Spacing="4">
