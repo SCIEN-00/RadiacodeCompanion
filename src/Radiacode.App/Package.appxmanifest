@@ -29,6 +29,8 @@
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements DisplayName="Radiacode Companion" Description="Unofficial companion app for RadiaCode detectors">
         <uap:DefaultTile/>
+        <!-- transparent = follows the Windows light/dark theme, like the OWON companion app -->
+        <uap:SplashScreen Image="splash_screen.png" BackgroundColor="transparent" />
       </uap:VisualElements>
       <Extensions>
         <!-- Lets the packaged app receive clicks on its toast notifications. -->

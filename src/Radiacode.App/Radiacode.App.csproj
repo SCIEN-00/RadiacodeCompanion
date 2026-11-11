@@ -16,6 +16,8 @@
     <ApplicationPublisher>Lauri</ApplicationPublisher>
     <!-- Package Description -->
     <Description>Unofficial companion app for RadiaCode detectors.</Description>
+    <!-- Splash screen: Cherenkov logo on a transparent background, so Windows draws it in the light/dark theme colour -->
+    <UnoSplashScreenColor>transparent</UnoSplashScreenColor>
     <!--
       If you encounter this error message:
 
@@ -46,5 +48,16 @@
     <ProjectReference Include="..\Radiacode.Transport.LibUsb\Radiacode.Transport.LibUsb.csproj" />
     <ProjectReference Include="..\Radiacode.Transport.Ble\Radiacode.Transport.Ble.csproj" />
   </ItemGroup>
+  <!--
+    MSIX splash screen: Cherenkov logo on BackgroundColor="transparent", which Windows draws in the
+    light/dark theme colour (as in the OWON companion app). Uno.Resizetizer only writes hex colours
+    into the generated manifest, so patch its output before packaging.
+  -->
+  <Target Name="RcThemedSplashScreen" AfterTargets="UnoResizetizeImages" Condition="'$(TargetPlatformIdentifier)' == 'windows'">
+    <ItemGroup>
+      <_RcManifest Include="@(AppxManifest)" />
+    </ItemGroup>
+    <WriteLinesToFile Condition="'@(_RcManifest)' != ''" File="%(_RcManifest.FullPath)" Overwrite="true" WriteOnlyWhenDifferent="true"
+      Lines="$([MSBuild]::Escape($([System.Text.RegularExpressions.Regex]::Replace($([System.IO.File]::ReadAllText('%(_RcManifest.FullPath)')), '(SplashScreen[^>]*BackgroundColor=&quot;)[^&quot;]*', '${1}transparent'))))" />
+  </Target>
 </Project>
-
