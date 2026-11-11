@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Radiacode Companion
+GenericName=Dosimeter and Gamma Spectrometer
+Comment=Unofficial companion app for RadiaCode detectors
+Exec=/opt/radiacode-companion/Radiacode.App
+Icon=radiacode-companion
+Terminal=false
+Categories=Science;Physics;Utility;
+Keywords=radiation;dosimeter;gamma;spectrum;radiacode;
+StartupWMClass=Radiacode.App

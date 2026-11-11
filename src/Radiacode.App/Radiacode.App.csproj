@@ -1,0 +1,50 @@
+<Project Sdk="Uno.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0-windows10.0.26100;net10.0-desktop</TargetFrameworks>
+
+    <OutputType>Exe</OutputType>
+    <UnoSingleProject>true</UnoSingleProject>
+
+    <!-- Display name -->
+    <ApplicationTitle>Radiacode Companion</ApplicationTitle>
+    <!-- App Identifier -->
+    <ApplicationId>com.lauri.radiacodecompanion</ApplicationId>
+    <!-- Versions -->
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+    <!-- Package Publisher -->
+    <ApplicationPublisher>Lauri</ApplicationPublisher>
+    <!-- Package Description -->
+    <Description>Unofficial companion app for RadiaCode detectors.</Description>
+    <!--
+      If you encounter this error message:
+
+        error NETSDK1148: A referenced assembly was compiled using a newer version of Microsoft.Windows.SDK.NET.dll.
+        Please update to a newer .NET SDK in order to reference this assembly.
+
+      This means that the two packages below must be aligned with the "build" version number of
+      the "Microsoft.Windows.SDK.BuildTools" package above, and the "revision" version number
+      must be the highest found in https://www.nuget.org/packages/Microsoft.Windows.SDK.NET.Ref.
+    -->
+    <!-- <WindowsSdkPackageVersion>10.0.22621.28</WindowsSdkPackageVersion> -->
+
+    <!--
+      UnoFeatures are used to quickly add and manage features enabled for your app.
+      https://aka.platform.uno/singleproject-features
+    -->
+    <UnoFeatures>
+      Mvvm;
+      SkiaRenderer;
+    </UnoFeatures>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Tmds.DBus" Version="0.95.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Radiacode.Core\Radiacode.Core.csproj" />
+    <ProjectReference Include="..\Radiacode.Transport.LibUsb\Radiacode.Transport.LibUsb.csproj" />
+    <ProjectReference Include="..\Radiacode.Transport.Ble\Radiacode.Transport.Ble.csproj" />
+  </ItemGroup>
+</Project>
+

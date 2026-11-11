@@ -1,0 +1,110 @@
+<UserControl x:Class="Radiacode.App.Controls.CherenkovLogo"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Particle (bright head) moving faster than light in the medium leaves a Cherenkov cone with
+       wavefronts tangent to it. While IsActive, the glow breathes and the wavefronts ripple outwards. -->
+  <UserControl.Resources>
+    <Storyboard x:Name="Pulse">
+      <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Glow" Storyboard.TargetProperty="Opacity">
+        <LinearDoubleKeyFrame KeyTime="0:0:0" Value="0.55" />
+        <EasingDoubleKeyFrame KeyTime="0:0:1.4" Value="1"><EasingDoubleKeyFrame.EasingFunction><SineEase EasingMode="EaseInOut" /></EasingDoubleKeyFrame.EasingFunction></EasingDoubleKeyFrame>
+        <EasingDoubleKeyFrame KeyTime="0:0:2.8" Value="0.55"><EasingDoubleKeyFrame.EasingFunction><SineEase EasingMode="EaseInOut" /></EasingDoubleKeyFrame.EasingFunction></EasingDoubleKeyFrame>
+      </DoubleAnimationUsingKeyFrames>
+      <DoubleAnimationUsingKeyFrames Storyboard.TargetName="GlowScale" Storyboard.TargetProperty="ScaleX">
+        <LinearDoubleKeyFrame KeyTime="0:0:0" Value="0.85" />
+        <EasingDoubleKeyFrame KeyTime="0:0:1.4" Value="1.15"><EasingDoubleKeyFrame.EasingFunction><SineEase EasingMode="EaseInOut" /></EasingDoubleKeyFrame.EasingFunction></EasingDoubleKeyFrame>
+        <EasingDoubleKeyFrame KeyTime="0:0:2.8" Value="0.85"><EasingDoubleKeyFrame.EasingFunction><SineEase EasingMode="EaseInOut" /></EasingDoubleKeyFrame.EasingFunction></EasingDoubleKeyFrame>
+      </DoubleAnimationUsingKeyFrames>
+      <DoubleAnimationUsingKeyFrames Storyboard.TargetName="GlowScale" Storyboard.TargetProperty="ScaleY">
+        <LinearDoubleKeyFrame KeyTime="0:0:0" Value="0.85" />
+        <EasingDoubleKeyFrame KeyTime="0:0:1.4" Value="1.15"><EasingDoubleKeyFrame.EasingFunction><SineEase EasingMode="EaseInOut" /></EasingDoubleKeyFrame.EasingFunction></EasingDoubleKeyFrame>
+        <EasingDoubleKeyFrame KeyTime="0:0:2.8" Value="0.85"><EasingDoubleKeyFrame.EasingFunction><SineEase EasingMode="EaseInOut" /></EasingDoubleKeyFrame.EasingFunction></EasingDoubleKeyFrame>
+      </DoubleAnimationUsingKeyFrames>
+      <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Cone" Storyboard.TargetProperty="Opacity">
+        <LinearDoubleKeyFrame KeyTime="0:0:0" Value="0.6" />
+        <EasingDoubleKeyFrame KeyTime="0:0:1.4" Value="1"><EasingDoubleKeyFrame.EasingFunction><SineEase EasingMode="EaseInOut" /></EasingDoubleKeyFrame.EasingFunction></EasingDoubleKeyFrame>
+        <EasingDoubleKeyFrame KeyTime="0:0:2.8" Value="0.6"><EasingDoubleKeyFrame.EasingFunction><SineEase EasingMode="EaseInOut" /></EasingDoubleKeyFrame.EasingFunction></EasingDoubleKeyFrame>
+      </DoubleAnimationUsingKeyFrames>
+      <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Wave1" Storyboard.TargetProperty="Opacity">
+        <LinearDoubleKeyFrame KeyTime="0:0:0" Value="0.3" />
+        <LinearDoubleKeyFrame KeyTime="0:0:0.35" Value="1" />
+        <LinearDoubleKeyFrame KeyTime="0:0:1.3" Value="0.3" />
+        <LinearDoubleKeyFrame KeyTime="0:0:2.8" Value="0.3" />
+      </DoubleAnimationUsingKeyFrames>
+      <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Wave2" Storyboard.TargetProperty="Opacity">
+        <LinearDoubleKeyFrame KeyTime="0:0:0" Value="0.25" />
+        <LinearDoubleKeyFrame KeyTime="0:0:0.4" Value="0.25" />
+        <LinearDoubleKeyFrame KeyTime="0:0:0.8" Value="0.9" />
+        <LinearDoubleKeyFrame KeyTime="0:0:1.8" Value="0.25" />
+        <LinearDoubleKeyFrame KeyTime="0:0:2.8" Value="0.25" />
+      </DoubleAnimationUsingKeyFrames>
+      <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Wave3" Storyboard.TargetProperty="Opacity">
+        <LinearDoubleKeyFrame KeyTime="0:0:0" Value="0.2" />
+        <LinearDoubleKeyFrame KeyTime="0:0:0.8" Value="0.2" />
+        <LinearDoubleKeyFrame KeyTime="0:0:1.25" Value="0.75" />
+        <LinearDoubleKeyFrame KeyTime="0:0:2.3" Value="0.2" />
+        <LinearDoubleKeyFrame KeyTime="0:0:2.8" Value="0.2" />
+      </DoubleAnimationUsingKeyFrames>
+    </Storyboard>
+  </UserControl.Resources>
+
+  <Viewbox Stretch="Uniform">
+    <Canvas Width="256" Height="256">
+      <Canvas.Resources>
+        <LinearGradientBrush x:Key="RingBrush" StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Color="#9BF0FF" Offset="0" />
+          <GradientStop Color="#2F8CFF" Offset="0.45" />
+          <GradientStop Color="#5B3DF5" Offset="1" />
+        </LinearGradientBrush>
+      </Canvas.Resources>
+
+      <!-- detector ring, open where the particle exits -->
+      <Path Data="M222.0,93.8 A100,100 0 1 1 162.2,34.0" Stroke="{StaticResource RingBrush}" StrokeThickness="24" Opacity="0.28"
+            StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+      <Path Data="M222.0,93.8 A100,100 0 1 1 162.2,34.0" Stroke="{StaticResource RingBrush}" StrokeThickness="10"
+            StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+
+      <!-- Cherenkov cone -->
+      <Path x:Name="Cone" Data="M174,82 L31.3,128.4 L127.6,224.7 Z" Opacity="0.8">
+        <Path.Fill>
+          <LinearGradientBrush StartPoint="1,0" EndPoint="0.256,0.743">
+            <GradientStop Color="#997FE3FF" Offset="0" />
+            <GradientStop Color="#003D5BFF" Offset="1" />
+          </LinearGradientBrush>
+        </Path.Fill>
+      </Path>
+
+      <!-- wavefronts tangent to the cone -->
+      <Path x:Name="Wave1" Data="M136.7,94.1 A20,20 0 0 1 161.9,119.3" Stroke="#8FEAFF" StrokeThickness="4.5" Opacity="0.95"
+            StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+      <Path x:Name="Wave2" Data="M102.8,105.1 A38.1,38.1 0 0 1 150.9,153.2" Stroke="#5FB8FF" StrokeThickness="3.7" Opacity="0.7"
+            StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+      <Path x:Name="Wave3" Data="M68.9,116.1 A56.3,56.3 0 0 1 139.9,187.1" Stroke="#4A6BFF" StrokeThickness="2.9" Opacity="0.45"
+            StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+
+      <!-- cone edges -->
+      <Path Data="M31.3,128.4 L174,82 L127.6,224.7" StrokeThickness="5" StrokeLineJoin="Round"
+            StrokeStartLineCap="Round" StrokeEndLineCap="Round">
+        <Path.Stroke>
+          <LinearGradientBrush StartPoint="1,0" EndPoint="0.256,0.743">
+            <GradientStop Color="#D8FAFF" Offset="0" />
+            <GradientStop Color="#003D5BFF" Offset="1" />
+          </LinearGradientBrush>
+        </Path.Stroke>
+      </Path>
+
+      <!-- particle glow + head -->
+      <Ellipse x:Name="Glow" Canvas.Left="100" Canvas.Top="8" Width="148" Height="148" Opacity="0.85" RenderTransformOrigin="0.5,0.5">
+        <Ellipse.RenderTransform><ScaleTransform x:Name="GlowScale" /></Ellipse.RenderTransform>
+        <Ellipse.Fill>
+          <RadialGradientBrush>
+            <GradientStop Color="#FFB4F5FF" Offset="0" />
+            <GradientStop Color="#852F8CFF" Offset="0.28" />
+            <GradientStop Color="#002F8CFF" Offset="1" />
+          </RadialGradientBrush>
+        </Ellipse.Fill>
+      </Ellipse>
+      <Ellipse Canvas.Left="165.5" Canvas.Top="73.5" Width="17" Height="17" Fill="#F2FDFF" />
+    </Canvas>
+  </Viewbox>
+</UserControl>

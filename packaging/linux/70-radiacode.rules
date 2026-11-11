@@ -1,0 +1,2 @@
+# RadiaCode dosimeters (USB 0483:f123): give the logged-in user access, so the app works without root.
+SUBSYSTEM=="usb", ATTR{idVendor}=="0483", ATTR{idProduct}=="f123", MODE="0660", TAG+="uaccess"

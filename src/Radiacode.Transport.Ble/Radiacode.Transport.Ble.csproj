@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Bluetooth LE transport: WinRT on Windows, BlueZ (D-Bus) on Linux. -->
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net10.0-windows10.0.19041.0</TargetFrameworks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Tmds.DBus" Version="0.95.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Radiacode.Core\Radiacode.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Linux.Bluetooth" Version="5.67.1" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Radiacode.Core/Radiacode.Core.csproj" />
+    <Project Path="src/Radiacode.Transport.LibUsb/Radiacode.Transport.LibUsb.csproj" />
+    <Project Path="src/Radiacode.Transport.Ble/Radiacode.Transport.Ble.csproj" />
+    <Project Path="src/Radiacode.Cli/Radiacode.Cli.csproj" />
+    <Project Path="src/Radiacode.App/Radiacode.App.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Radiacode.Core.Tests/Radiacode.Core.Tests.csproj" />
+  </Folder>
+</Solution>
+

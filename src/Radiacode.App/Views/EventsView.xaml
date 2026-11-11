@@ -1,0 +1,28 @@
+<UserControl x:Class="Radiacode.App.Views.EventsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Grid Padding="12,0,12,0">
+    <Border Style="{StaticResource Card}">
+      <Grid RowSpacing="8">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+        <Grid ColumnSpacing="12">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+          <StackPanel>
+            <TextBlock Style="{StaticResource CardTitle}" Text="Events" />
+            <TextBlock Style="{StaticResource Muted}" FontSize="13"
+                       Text="Device events (alarms, power, buttons) and app events (connect, pause, resets, exports). Newest first, last 500." />
+          </StackPanel>
+          <Button Grid.Column="1" Content="Clear" VerticalAlignment="Top" Command="{x:Bind ViewModel.ClearEventsCommand}" />
+        </Grid>
+        <TextBlock Grid.Row="1" Style="{StaticResource Muted}" Text="No events yet." Visibility="{x:Bind ViewModel.HasNoEvents, Mode=OneWay}" />
+        <ListView Grid.Row="1" SelectionMode="None" ItemsSource="{x:Bind ViewModel.Events}">
+          <ListView.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Style="{StaticResource Value}" Text="{x:Bind}" Margin="0,4" />
+            </DataTemplate>
+          </ListView.ItemTemplate>
+        </ListView>
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

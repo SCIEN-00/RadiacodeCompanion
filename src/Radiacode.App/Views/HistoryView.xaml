@@ -1,0 +1,56 @@
+<UserControl x:Class="Radiacode.App.Views.HistoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Radiacode.App.Controls"
+             xmlns:app="using:Radiacode.App">
+  <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+    <Grid>
+      <StackPanel Padding="12,0,12,0" Spacing="12" HorizontalAlignment="Stretch">
+
+        <Border Style="{StaticResource Card}">
+          <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <StackPanel>
+              <TextBlock Style="{StaticResource CardTitle}" Text="History" />
+              <TextBlock Style="{StaticResource Muted}" Text="{x:Bind ViewModel.HistoryInfo, Mode=OneWay}" />
+              <TextBlock Style="{StaticResource Muted}" FontSize="13" Text="Saved automatically while connected (one CSV per day, kept 90 days; folder in Settings). This view shows up to 24 h." />
+              <TextBlock Style="{StaticResource Muted}" FontSize="13" Foreground="{ThemeResource OkBrush}" Text="{x:Bind ViewModel.HistoryExportText, Mode=OneWay}"
+                         Visibility="{x:Bind app:Ui.ShowIf(ViewModel.HistoryExportText), Mode=OneWay}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+              <RadioButtons MaxColumns="4" SelectedIndex="{x:Bind ViewModel.HistoryRangeIndex, Mode=TwoWay}">
+                <x:String>10 min</x:String>
+                <x:String>1 h</x:String>
+                <x:String>6 h</x:String>
+                <x:String>24 h</x:String>
+              </RadioButtons>
+              <Button Content="Export CSV" Command="{x:Bind ViewModel.ExportHistoryCommand}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+          <StackPanel Spacing="8">
+            <TextBlock Style="{StaticResource CardTitle}" Text="Dose rate" />
+            <TextBlock Style="{StaticResource Muted}" Text="{x:Bind ViewModel.HistoryDoseStats, Mode=OneWay}" />
+            <controls:LineChart Height="260" Unit="nSv/h" Stroke="{StaticResource DoseBrush}"
+                                Values="{x:Bind ViewModel.HistoryDose, Mode=OneWay}"
+                                XValue="{x:Bind ViewModel.HistoryX, Mode=OneWay}"
+                                XFormat="{x:Bind ViewModel.HistoryXFormat, Mode=OneWay}" />
+          </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+          <StackPanel Spacing="8">
+            <TextBlock Style="{StaticResource CardTitle}" Text="Count rate" />
+            <TextBlock Style="{StaticResource Muted}" Text="{x:Bind ViewModel.HistoryCountStats, Mode=OneWay}" />
+            <controls:LineChart Height="260" Unit="cps" Stroke="{StaticResource CountBrush}"
+                                Values="{x:Bind ViewModel.HistoryCount, Mode=OneWay}"
+                                XValue="{x:Bind ViewModel.HistoryX, Mode=OneWay}"
+                                XFormat="{x:Bind ViewModel.HistoryXFormat, Mode=OneWay}" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </Grid>
+  </ScrollViewer>
+</UserControl>

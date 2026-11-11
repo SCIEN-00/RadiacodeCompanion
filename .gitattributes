@@ -1,0 +1,6 @@
+* text=auto
+*.sh text eol=lf
+*.rules text eol=lf
+*.desktop text eol=lf
+*.dll binary
+*.png binary

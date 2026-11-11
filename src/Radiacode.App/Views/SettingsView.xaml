@@ -1,0 +1,95 @@
+<UserControl x:Class="Radiacode.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+    <Grid>
+      <StackPanel Padding="12,0,12,0" Spacing="12" MaxWidth="900" HorizontalAlignment="Stretch">
+
+        <Border Style="{StaticResource Card}">
+          <StackPanel Spacing="10">
+            <TextBlock Style="{StaticResource CardTitle}" Text="Appearance" />
+            <RadioButtons Header="Theme" MaxColumns="3" SelectedIndex="{x:Bind ViewModel.ThemeIndex, Mode=TwoWay}">
+              <x:String>Follow system</x:String>
+              <x:String>Light</x:String>
+              <x:String>Dark</x:String>
+            </RadioButtons>
+            <ToggleSwitch Header="Animated logo" OnContent="Pulses while data is streaming" OffContent="Static"
+                          IsOn="{x:Bind ViewModel.AnimationsEnabled, Mode=TwoWay}" />
+          </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+          <StackPanel Spacing="10">
+            <TextBlock Style="{StaticResource CardTitle}" Text="Alarm" />
+            <ToggleSwitch Header="Dose-rate alarm" OnContent="On" OffContent="Off" IsOn="{x:Bind ViewModel.AlarmEnabled, Mode=TwoWay}" />
+            <NumberBox Header="Alarm level (nSv/h)" Minimum="50" Maximum="100000" SmallChange="10" LargeChange="100"
+                       SpinButtonPlacementMode="Inline" HorizontalAlignment="Left" MinWidth="220"
+                       Value="{x:Bind ViewModel.AlarmLevel, Mode=TwoWay}" />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <ToggleSwitch Header="Desktop notifications" OnContent="On" OffContent="Off" IsOn="{x:Bind ViewModel.AlarmNotifications, Mode=TwoWay}" />
+              <Button Content="Send test notification" VerticalAlignment="Bottom" Command="{x:Bind ViewModel.TestNotificationCommand}" />
+            </StackPanel>
+            <TextBlock Style="{StaticResource Muted}" FontSize="13"
+                       Text="Raised after about 5 s above the level and cleared after about 10 s below 80 % of it, so single noisy readings do not trigger it. Typical background here is 40–100 nSv/h. Alarms from the device itself (its own thresholds) are also shown as notifications." />
+          </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+          <StackPanel Spacing="10">
+            <TextBlock Style="{StaticResource CardTitle}" Text="Connection" />
+            <RadioButtons MaxColumns="3" SelectedIndex="{x:Bind ViewModel.ConnectionIndex, Mode=TwoWay}">
+              <x:String>Automatic</x:String>
+              <x:String>USB only</x:String>
+              <x:String>Bluetooth only</x:String>
+            </RadioButtons>
+            <TextBlock Style="{StaticResource Muted}" FontSize="13"
+                       Text="Automatic uses USB when the device is plugged in and otherwise searches for it over Bluetooth (up to 20 s). The device accepts one Bluetooth connection at a time, so close the phone app or other Bluetooth clients first. Applies to the next Connect." />
+          </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+          <StackPanel Spacing="10">
+            <TextBlock Style="{StaticResource CardTitle}" Text="Spectrum" />
+            <ToggleSwitch Header="Correct energy scale with K-40" OnContent="On" OffContent="Off"
+                          IsOn="{x:Bind ViewModel.GainCorrectionEnabled, Mode=TwoWay}" />
+            <TextBlock Style="{StaticResource Muted}" FontSize="13"
+                       Text="The detector's gain drifts with temperature (a few % in the cold), which shifts all peaks. K-40 at 1460.8 keV is in almost every background, so its measured position is used to rescale the energy axis. Only applied when the K-40 peak is clear (≥ 5σ); CSV exports keep the raw energies too." />
+          </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+          <StackPanel Spacing="10">
+            <TextBlock Style="{StaticResource CardTitle}" Text="Pulse rhythm" />
+            <TextBlock Style="{StaticResource Muted}" FontSize="13"
+                       Text="At this count rate the logo breathes at its resting pace (about 2.8 s per breath). Higher count rates speed it up with the square root, up to 4×." />
+            <NumberBox Header="Background count rate (cps)" Minimum="0.5" Maximum="1000" SmallChange="0.5" LargeChange="5"
+                       SpinButtonPlacementMode="Inline" HorizontalAlignment="Left" MinWidth="220"
+                       Value="{x:Bind ViewModel.BackgroundCps, Mode=TwoWay}" />
+          </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+          <StackPanel Spacing="8">
+            <TextBlock Style="{StaticResource CardTitle}" Text="Files" />
+            <TextBlock Style="{StaticResource Muted}" Text="CSV exports" />
+            <TextBlock Style="{StaticResource Value}" Text="{x:Bind ViewModel.ExportFolderText}" />
+            <TextBlock Style="{StaticResource Muted}" Text="Reading history (CSV per day)" />
+            <TextBlock Style="{StaticResource Value}" Text="{x:Bind ViewModel.HistoryFolderText}" />
+            <TextBlock Style="{StaticResource Muted}" Text="Settings" />
+            <TextBlock Style="{StaticResource Value}" Text="{x:Bind ViewModel.SettingsFileText}" />
+          </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+          <StackPanel Spacing="6">
+            <TextBlock Style="{StaticResource CardTitle}" Text="About" />
+            <TextBlock Style="{StaticResource Value}">
+              <Run Text="Radiacode Companion " /><Run Text="{x:Bind ViewModel.VersionText}" />
+            </TextBlock>
+            <TextBlock Style="{StaticResource Muted}" Text="Unofficial app — not affiliated with RadiaCode. Protocol based on cdump/radiacode (MIT)." />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </Grid>
+  </ScrollViewer>
+</UserControl>

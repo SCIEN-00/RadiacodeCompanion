@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+ <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9BF0FF"/><stop offset="0.45" stop-color="#2F8CFF"/><stop offset="1" stop-color="#5B3DF5"/></linearGradient>
+ <linearGradient id="cone" x1="174" y1="82" x2="68" y2="188" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7FE3FF" stop-opacity="0.6"/><stop offset="1" stop-color="#3D5BFF" stop-opacity="0"/></linearGradient>
+ <linearGradient id="edge" x1="174" y1="82" x2="68" y2="188" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#D8FAFF"/><stop offset="1" stop-color="#3D5BFF" stop-opacity="0"/></linearGradient>
+ <linearGradient id="wave" x1="174" y1="82" x2="68" y2="188" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#8FEAFF"/><stop offset="1" stop-color="#4A6BFF"/></linearGradient>
+ <radialGradient id="glow" cx="174" cy="82" r="74" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#B4F5FF" stop-opacity="1"/><stop offset="0.28" stop-color="#2F8CFF" stop-opacity="0.52"/><stop offset="1" stop-color="#2F8CFF" stop-opacity="0"/></radialGradient>
+</defs>
+<path d="M222.0 93.8 A100.0 100.0 0 1 1 162.2 34.0" fill="none" stroke="url(#ring)" stroke-width="24" stroke-opacity="0.28" stroke-linecap="round"/>
+<path d="M222.0 93.8 A100.0 100.0 0 1 1 162.2 34.0" fill="none" stroke="url(#ring)" stroke-width="10" stroke-linecap="round"/>
+<path d="M174 82 L31.3 128.4 L127.6 224.7 Z" fill="url(#cone)"/>
+<path d="M136.7 94.1 A20.0 20.0 0 0 1 161.9 119.3" fill="none" stroke="url(#wave)" stroke-width="4.5" stroke-opacity="0.95" stroke-linecap="round"/>
+<path d="M102.8 105.1 A38.1 38.1 0 0 1 150.9 153.2" fill="none" stroke="url(#wave)" stroke-width="3.7" stroke-opacity="0.70" stroke-linecap="round"/>
+<path d="M68.9 116.1 A56.3 56.3 0 0 1 139.9 187.1" fill="none" stroke="url(#wave)" stroke-width="2.9" stroke-opacity="0.45" stroke-linecap="round"/>
+<path d="M31.3 128.4 L174 82 L127.6 224.7" fill="none" stroke="url(#edge)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="174" cy="82" r="74" fill="url(#glow)"/>
+<circle cx="174" cy="82" r="8.5" fill="#F2FDFF"/>
+</svg>

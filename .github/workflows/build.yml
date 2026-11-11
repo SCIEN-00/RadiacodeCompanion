@@ -1,0 +1,121 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - id: v
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=0.0.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          fi
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - run: dotnet test tests/Radiacode.Core.Tests -c Release
+
+  linux:
+    needs: [version, test]
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: linux-x64
+            deb: amd64
+            runner: ubuntu-latest
+          - rid: linux-arm64
+            deb: arm64
+            runner: ubuntu-24.04-arm
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - name: Publish
+        run: >
+          dotnet publish src/Radiacode.App/Radiacode.App.csproj -c Release -f net10.0-desktop
+          -r ${{ matrix.rid }} --self-contained -p:Version=$VERSION -o out/${{ matrix.rid }}
+      - name: Package (.deb + .tar.gz)
+        run: |
+          chmod +x packaging/linux/build-deb.sh
+          packaging/linux/build-deb.sh out/${{ matrix.rid }} "$VERSION" ${{ matrix.deb }} dist
+          tar -C out -czf dist/radiacode-companion_${VERSION}_${{ matrix.rid }}.tar.gz ${{ matrix.rid }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: radiacode-companion-${{ matrix.rid }}
+          path: dist/*
+
+  windows:
+    needs: [version, test]
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rid: [win-x64, win-arm64]
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - name: Publish
+        shell: pwsh
+        run: >
+          dotnet publish src/Radiacode.App/Radiacode.App.csproj -c Release -f net10.0-windows10.0.26100
+          -r ${{ matrix.rid }} --self-contained -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true
+          -p:Version=$env:VERSION -o out/${{ matrix.rid }}
+      - name: Package (.zip)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory dist -Force | Out-Null
+          Compress-Archive -Path out/${{ matrix.rid }}/* -DestinationPath "dist/radiacode-companion_$($env:VERSION)_${{ matrix.rid }}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: radiacode-companion-${{ matrix.rid }}
+          path: dist/*
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: cd dist && sha256sum * > SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

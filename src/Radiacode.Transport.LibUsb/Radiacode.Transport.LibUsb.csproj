@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Tmds.DBus" Version="0.95.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Radiacode.Core\Radiacode.Core.csproj" />
+  </ItemGroup>
+  <!-- Windows needs libusb-1.0.dll next to the app (official libusb 1.0.30 build, see native/README.md). -->
+  <PropertyGroup>
+    <LibUsbArch Condition="'$(RuntimeIdentifier)' == 'win-x64'">win-x64</LibUsbArch>
+    <LibUsbArch Condition="'$(LibUsbArch)' == ''">win-arm64</LibUsbArch>
+  </PropertyGroup>
+  <ItemGroup Condition="Exists('..\..\native\$(LibUsbArch)\libusb-1.0.dll')">
+    <None Include="..\..\native\$(LibUsbArch)\libusb-1.0.dll" Link="libusb-1.0.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

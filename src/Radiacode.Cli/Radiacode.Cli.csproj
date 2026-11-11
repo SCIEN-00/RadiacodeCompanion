@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>rccli</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Tmds.DBus" Version="0.95.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Radiacode.Core\Radiacode.Core.csproj" />
+    <ProjectReference Include="..\Radiacode.Transport.LibUsb\Radiacode.Transport.LibUsb.csproj" />
+    <ProjectReference Include="..\Radiacode.Transport.Ble\Radiacode.Transport.Ble.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,79 @@
+<UserControl x:Class="Radiacode.App.Views.DeviceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+    <Grid>
+      <Grid Padding="12,0,12,0" ColumnSpacing="12" RowSpacing="12">
+        <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+
+        <Border Style="{StaticResource Card}">
+          <StackPanel Spacing="10">
+            <TextBlock Style="{StaticResource CardTitle}" Text="Device" />
+            <Grid ColumnSpacing="12" RowSpacing="8">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="160" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+              <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+              <TextBlock Style="{StaticResource Muted}" Text="Serial number" />
+              <TextBlock Grid.Column="1" Style="{StaticResource Value}" Text="{x:Bind ViewModel.Serial, Mode=OneWay}" />
+              <TextBlock Grid.Row="1" Style="{StaticResource Muted}" Text="Firmware" />
+              <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Value}" Text="{x:Bind ViewModel.FirmwareText, Mode=OneWay}" />
+              <TextBlock Grid.Row="5" Style="{StaticResource Muted}" Text="Firmware update" />
+              <StackPanel Grid.Row="5" Grid.Column="1" Spacing="2">
+                <TextBlock Style="{StaticResource Value}" Text="{x:Bind ViewModel.FirmwareUpdateText, Mode=OneWay}" />
+                <HyperlinkButton Padding="0" Content="radiacode.com/downloads" NavigateUri="{x:Bind ViewModel.FirmwareDownloadsUrl}"
+                                 Visibility="{x:Bind ViewModel.FirmwareUpdateAvailable, Mode=OneWay}" />
+              </StackPanel>
+              <TextBlock Grid.Row="2" Style="{StaticResource Muted}" Text="Connection" />
+              <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource Value}" Text="{x:Bind ViewModel.TransportText, Mode=OneWay}" />
+              <TextBlock Grid.Row="3" Style="{StaticResource Muted}" Text="Spectrum format" />
+              <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource Value}" Text="{x:Bind ViewModel.SpectrumFormatText, Mode=OneWay}" />
+              <TextBlock Grid.Row="4" Style="{StaticResource Muted}" Text="Status" />
+              <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource Value}" Text="{x:Bind ViewModel.Status, Mode=OneWay}" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Column="1" Style="{StaticResource Card}">
+          <StackPanel Spacing="10">
+            <TextBlock Style="{StaticResource CardTitle}" Text="Condition" />
+            <Grid ColumnSpacing="12" RowSpacing="8">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="160" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+              <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+              <TextBlock Style="{StaticResource Muted}" Text="Battery" />
+              <TextBlock Grid.Column="1" Style="{StaticResource Value}" Text="{x:Bind ViewModel.BatteryText, Mode=OneWay}" />
+              <TextBlock Grid.Row="1" Style="{StaticResource Muted}" Text="Temperature" />
+              <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Value}" Text="{x:Bind ViewModel.TemperatureText, Mode=OneWay}" />
+              <TextBlock Grid.Row="2" Style="{StaticResource Muted}" Text="Accumulated dose" />
+              <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource Value}">
+                <Run Text="{x:Bind ViewModel.DoseText, Mode=OneWay}" /><Run Text=" µSv " /><Run Text="{x:Bind ViewModel.DoseDurationText, Mode=OneWay}" />
+              </TextBlock>
+              <TextBlock Grid.Row="3" Style="{StaticResource Muted}" Text="Last reading" />
+              <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource Value}" Text="{x:Bind ViewModel.LastReadingText, Mode=OneWay}" />
+            </Grid>
+            <TextBlock Style="{StaticResource Muted}" FontSize="13"
+                       Text="Battery % and the device's dose counter are only reported when connecting; the dose is then integrated live from the dose rate. Charging state comes with every reading; temperature is read every 10 s." />
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource Card}">
+          <StackPanel Spacing="10">
+            <TextBlock Style="{StaticResource CardTitle}" Text="Energy calibration" />
+            <TextBlock Style="{StaticResource Value}" Text="{x:Bind ViewModel.CalibrationText, Mode=OneWay}" />
+            <TextBlock Style="{StaticResource Muted}" FontSize="13" Text="Channel → energy polynomial stored on the device; read with every spectrum." />
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource Card}">
+          <StackPanel Spacing="10">
+            <TextBlock Style="{StaticResource CardTitle}" Text="Actions" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Content="Reset spectrum…" Click="ResetSpectrum_Click" IsEnabled="{x:Bind ViewModel.IsConnected, Mode=OneWay}" />
+              <Button Content="Reset accumulated dose…" Click="ResetDose_Click" IsEnabled="{x:Bind ViewModel.IsConnected, Mode=OneWay}" />
+            </StackPanel>
+            <TextBlock Style="{StaticResource Muted}" FontSize="13" Text="Both act on the device itself and ask for confirmation first." />
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Grid>
+  </ScrollViewer>
+</UserControl>
