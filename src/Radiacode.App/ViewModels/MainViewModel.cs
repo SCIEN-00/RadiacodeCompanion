@@ -190,6 +190,11 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial double DevDoseAlarm1 { get; set; }
     [ObservableProperty] public partial double DevDoseAlarm2 { get; set; }
     [ObservableProperty] public partial double DevSoundVolume { get; set; }
+    [ObservableProperty] public partial bool DevButtonVibration { get; set; }
+    [ObservableProperty] public partial bool DevConnectionSound { get; set; }
+    [ObservableProperty] public partial bool DevPowerSound { get; set; }
+    [ObservableProperty] public partial bool DevLed { get; set; }
+    [ObservableProperty] public partial bool DevHasLed { get; set; }
     [ObservableProperty] public partial int DevLanguageIndex { get; set; }        // 0 English, 1 Russian
     [ObservableProperty] public partial int DevDoseUnitsIndex { get; set; }       // 0 Sv, 1 R
     [ObservableProperty] public partial bool DevNanoSievert { get; set; }
@@ -729,6 +734,11 @@ public partial class MainViewModel : ObservableObject
             DevDoseAlarm1 = s.DoseAlarm1MicroSv;
             DevDoseAlarm2 = s.DoseAlarm2MicroSv;
             DevSoundVolume = s.SoundVolume;
+            DevButtonVibration = s.ButtonVibration;
+            DevConnectionSound = s.ConnectionSound;
+            DevPowerSound = s.PowerSound;
+            DevLed = s.Led;
+            DevHasLed = s.Has(Vsfr.DeviceCtrl);
             DevLanguageIndex = s.English ? 0 : 1;
             DevDoseUnitsIndex = s.DoseInSievert ? 0 : 1;
             DevNanoSievert = s.NanoSievertPerHour;
@@ -763,7 +773,10 @@ public partial class MainViewModel : ObservableObject
         var wanted = current with
         {
             SoundOn = DevSoundOn,
-            SoundCtrl = DeviceSettings.WithFlag(DeviceSettings.WithFlag(current.SoundCtrl, NotifyEvents.Clicks, DevClickSound), NotifyEvents.Buttons, DevButtonSound),
+            SoundCtrl = DeviceSettings.WithFlag(DeviceSettings.WithFlag(DeviceSettings.WithFlag(DeviceSettings.WithFlag(current.SoundCtrl,
+                NotifyEvents.Clicks, DevClickSound), NotifyEvents.Buttons, DevButtonSound), NotifyEvents.Connection, DevConnectionSound), NotifyEvents.Power, DevPowerSound),
+            VibroCtrl = DeviceSettings.WithFlag(current.VibroCtrl, NotifyEvents.Buttons, DevButtonVibration),
+            DeviceCtrl = DevLed ? current.DeviceCtrl | DeviceSettings.LedBit : current.DeviceCtrl & ~DeviceSettings.LedBit,
             VibrationOn = DevVibrationOn,
             Brightness = (uint)Math.Clamp(Math.Round(DevBrightness), 0, 9),
             DisplayOffSeconds = DeviceSettings.OffTimes[Math.Clamp(DevDisplayOffIndex, 0, DeviceSettings.OffTimes.Length - 1)],

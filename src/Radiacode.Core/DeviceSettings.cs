@@ -12,6 +12,8 @@ public enum NotifyEvents : uint
     DoseAlarm1 = 1 << 5,
     DoseAlarm2 = 1 << 6,
     DoseOutOfScale = 1 << 7,
+    Connection = 1 << 8,       // device menu Signals → Connection (sound only on RC-110 FW 4.15)
+    Power = 1 << 9,            // device menu Signals → Power
 }
 
 public enum DisplayDirection : uint { Auto = 0, Right = 1, Left = 2 }
@@ -44,6 +46,7 @@ public sealed record DeviceSettings
     public bool NanoSievertPerHour { get; init; } = true; // USE_nSv_h: small dose rates in nSv/h
     public bool CountsPerMinute { get; init; }       // CR_UNITS: 1 = cpm, 0 = cps
     public bool Fahrenheit { get; init; }            // TEMP_UNITS: 1 = °F, 0 = °C
+    public uint DeviceCtrl { get; init; } = 0x23;    // DEVICE_CTRL: bit 3 = LED (Signals → Light); other bits unknown, kept
 
     /// <summary>Registers the device actually reported; <see cref="ToRaw"/> only returns these (all, if empty).</summary>
     internal IReadOnlySet<Vsfr> Available { get; init; } = new HashSet<Vsfr>();
@@ -52,6 +55,13 @@ public sealed record DeviceSettings
 
     public bool ClickSound => (SoundCtrl & (uint)NotifyEvents.Clicks) != 0;
     public bool ButtonSound => (SoundCtrl & (uint)NotifyEvents.Buttons) != 0;
+    public bool ButtonVibration => (VibroCtrl & (uint)NotifyEvents.Buttons) != 0;
+    public bool ConnectionSound => (SoundCtrl & (uint)NotifyEvents.Connection) != 0;
+    public bool PowerSound => (SoundCtrl & (uint)NotifyEvents.Power) != 0;
+    public bool Led => (DeviceCtrl & LedBit) != 0;
+
+    /// <summary>DEVICE_CTRL bit for the LED (device menu Signals → Light), found on RC-110 FW 4.15.</summary>
+    public const uint LedBit = 1 << 3;
 
     /// <summary>Display auto-off choices in seconds, by register index (list from the device configuration).</summary>
     public static readonly uint[] OffTimes = [5, 10, 15, 30, 120, 300];
@@ -68,6 +78,7 @@ public sealed record DeviceSettings
     internal static readonly Vsfr[] OptionalRegisters =
     [
         // DEVICE_LANG is left out: the international RC-110 firmware (Language=English in its configuration) has only English.
+        Vsfr.SoundVolume, Vsfr.DoseUnits, Vsfr.UseNanoSvH, Vsfr.CountRateUnits, Vsfr.TempUnits, Vsfr.DeviceCtrl,
     ];
 
     internal static DeviceSettings FromRaw(IReadOnlyDictionary<Vsfr, uint> r) => new()
@@ -91,6 +102,7 @@ public sealed record DeviceSettings
         NanoSievertPerHour = r.GetValueOrDefault(Vsfr.UseNanoSvH, 1u) != 0,
         CountsPerMinute = r.GetValueOrDefault(Vsfr.CountRateUnits, 0u) != 0,
         Fahrenheit = r.GetValueOrDefault(Vsfr.TempUnits, 0u) != 0,
+        DeviceCtrl = r.GetValueOrDefault(Vsfr.DeviceCtrl, 0x23u),
         Available = r.Keys.ToHashSet(),
     };
 
@@ -118,6 +130,7 @@ public sealed record DeviceSettings
             [Vsfr.UseNanoSvH] = NanoSievertPerHour ? 1u : 0u,
             [Vsfr.CountRateUnits] = CountsPerMinute ? 1u : 0u,
             [Vsfr.TempUnits] = Fahrenheit ? 1u : 0u,
+            [Vsfr.DeviceCtrl] = DeviceCtrl,
         };
         return all.Where(kv => Has(kv.Key)).ToDictionary();
     }

@@ -57,6 +57,20 @@ public class DeviceSettingsTests
         Assert.True(s.DoseInSievert);
         Assert.False(s.CountsPerMinute);
         Assert.True(s.English); // device menu was in English with DEVICE_LANG = 0
+
+        // Optional registers must actually be read (regression: the list was once emptied by mistake).
+        var optional = (Vsfr[])typeof(DeviceSettings).GetField("OptionalRegisters", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!.GetValue(null)!;
+        Assert.Contains(Vsfr.SoundVolume, optional);
+        Assert.Contains(Vsfr.DeviceCtrl, optional);
+        Assert.DoesNotContain(Vsfr.DeviceLang, optional);
+
+        // Mapped with the device menu (Settings → Signals), RC-110 FW 4.15, 2026-11-12.
+        var sig = s with { DeviceCtrl = 0x2B, SoundCtrl = 0x1DF8, VibroCtrl = 0x1CFF };
+        Assert.True(sig.Led);                 // Light on: DEVICE_CTRL 0x23 → 0x2B
+        Assert.True(sig.ConnectionSound);     // Connection on: bit 8
+        Assert.False(sig.PowerSound);         // Power off: bit 9 cleared
+        Assert.False(sig.ButtonSound);
+        Assert.True(sig.ButtonVibration);
         var back = (IReadOnlyDictionary<Vsfr, uint>)toRaw.Invoke(s with { SoundVolume = 250, Fahrenheit = true }, null)!;
         Assert.Equal(100u, back[Vsfr.SoundVolume]);
         Assert.Equal(1u, back[Vsfr.TempUnits]);

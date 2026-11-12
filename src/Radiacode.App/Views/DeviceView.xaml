@@ -107,9 +107,13 @@
                         MaxWidth="280" HorizontalAlignment="Left" MinWidth="220" />
                 <CheckBox Content="Click sound for each detected particle" IsChecked="{x:Bind ViewModel.DevClickSound, Mode=TwoWay}" />
                 <CheckBox Content="Button press sound" IsChecked="{x:Bind ViewModel.DevButtonSound, Mode=TwoWay}" />
+                <CheckBox Content="Sound on Bluetooth connect / disconnect" IsChecked="{x:Bind ViewModel.DevConnectionSound, Mode=TwoWay}" />
+                <CheckBox Content="Sound on power on / off" IsChecked="{x:Bind ViewModel.DevPowerSound, Mode=TwoWay}" />
                 <ToggleSwitch Header="Vibration" IsOn="{x:Bind ViewModel.DevVibrationOn, Mode=TwoWay}" />
+                <CheckBox Content="Button press vibration" IsChecked="{x:Bind ViewModel.DevButtonVibration, Mode=TwoWay}" />
+                <ToggleSwitch Header="Light (LED)" IsOn="{x:Bind ViewModel.DevLed, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.DevHasLed, Mode=OneWay}" />
                 <TextBlock Style="{StaticResource Muted}" FontSize="13"
-                           Text="Clicks are only heard when Sound is on. The LED flashes for every particle regardless; this firmware (4.15) has no setting for it." />
+                           Text="Same as Settings → Signals on the device. Event sounds are only heard when Sound is on." />
               </StackPanel>
 
               <StackPanel Grid.Column="1" Spacing="4">
