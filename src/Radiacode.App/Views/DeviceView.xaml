@@ -111,7 +111,6 @@
                 <CheckBox Content="Sound on power on / off" IsChecked="{x:Bind ViewModel.DevPowerSound, Mode=TwoWay}" />
                 <ToggleSwitch Header="Vibration" IsOn="{x:Bind ViewModel.DevVibrationOn, Mode=TwoWay}" />
                 <CheckBox Content="Button press vibration" IsChecked="{x:Bind ViewModel.DevButtonVibration, Mode=TwoWay}" />
-                <ToggleSwitch Header="Light (LED)" IsOn="{x:Bind ViewModel.DevLed, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.DevHasLed, Mode=OneWay}" />
                 <TextBlock Style="{StaticResource Muted}" FontSize="13"
                            Text="Same as Settings → Signals on the device. Event sounds are only heard when Sound is on." />
               </StackPanel>
@@ -133,6 +132,8 @@
                   <x:String>Right-handed</x:String>
                   <x:String>Left-handed</x:String>
                 </ComboBox>
+                <ToggleSwitch Header="Light (LED)" IsOn="{x:Bind ViewModel.DevLed, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.DevHasLed, Mode=OneWay}" />
+                <TextBlock Style="{StaticResource Muted}" FontSize="13" Text="The LED flashes for detected particles and alarms." />
               </StackPanel>
 
               <StackPanel Grid.Column="2" Spacing="4">
