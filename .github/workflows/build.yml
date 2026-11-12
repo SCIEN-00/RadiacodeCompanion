@@ -96,14 +96,10 @@ jobs:
           dotnet publish src/Radiacode.App/Radiacode.App.csproj -c Release -f net10.0-windows10.0.26100
           -r ${{ matrix.rid }} -p:Platform=${{ matrix.platform }} --self-contained -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true
           -p:Version=$env:VERSION -o out/${{ matrix.rid }}
-      - name: Package (.zip)
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory dist -Force | Out-Null
-          Compress-Archive -Path out/${{ matrix.rid }}/* -DestinationPath "dist/radiacode-companion_$($env:VERSION)_${{ matrix.rid }}.zip"
       - name: Installer (.exe)
         shell: pwsh
         run: |
+          New-Item -ItemType Directory dist -Force | Out-Null
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y | Out-Null }
           $arch = '${{ matrix.rid }}'.Replace('win-', '')
