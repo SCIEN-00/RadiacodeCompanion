@@ -10,10 +10,10 @@ Nothing. The app has no accounts, analytics, telemetry, advertising or crash rep
 
 ## Data stored on your computer
 
-- Settings, the last connected device, measurement history and saved background spectra: `%LOCALAPPDATA%\RadiacodeCompanion` on Windows (inside the app's own package folder for the Microsoft Store version), `~/.local/share/RadiacodeCompanion` on Linux.
+- Settings, the last connected device, measurement history and saved background spectra: `%LOCALAPPDATA%\RadiacodeCompanion` on Windows, `~/.local/share/RadiacodeCompanion` on Linux. For the Microsoft Store version Windows may keep a private copy of changed files in the app's package folder (`%LOCALAPPDATA%\Packages\25158THOR-00.RadiacodeCompanion_…`).
 - Files you export: the folder you choose, by default `Documents\Radiacode Companion`.
 
-You can delete these folders at any time. Uninstalling the Microsoft Store version removes its package folder; exported files stay where you saved them.
+You can delete these folders at any time; uninstalling the app does not delete your measurement files or exports.
 
 ## Network access
 
