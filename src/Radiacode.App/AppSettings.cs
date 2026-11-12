@@ -12,6 +12,8 @@ public sealed class AppSettings
     public int Connection { get; set; }
     /// <summary>Serial of the last connected device; preferred when several are found.</summary>
     public string? LastDevice { get; set; }
+    /// <summary>Base time of the last session with <see cref="LastDevice"/>: decodes the records it stores while disconnected.</summary>
+    public DateTime? LastBaseTime { get; set; }
     /// <summary>Last battery/dose report, used until the device sends a new one after reconnecting.</summary>
     public DeviceStatusCache? LastStatus { get; set; }
     /// <summary>Correct the energy scale using the K-40 peak.</summary>

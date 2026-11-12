@@ -57,7 +57,10 @@ public sealed partial class MainPage : Page
         };
         _stopStatusPulse = statusPulse.Stop;
 
-        if (App.MainWindow is { } window) window.Closed += (_, _) => ViewModel.FlushHistory();
+        // Close the device link on every way out: window closed, process exit (incl. SIGTERM), unhandled exception.
+        if (App.MainWindow is { } window) window.Closed += (_, _) => ViewModel.Shutdown();
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => ViewModel.Shutdown();
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => { if (e.IsTerminating) ViewModel.Shutdown(); };
         ViewModel.ChooseDevice = ChooseDeviceAsync;
 
         Loaded += (_, _) =>

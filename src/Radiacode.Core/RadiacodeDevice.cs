@@ -11,6 +11,12 @@ public sealed class RadiacodeDevice : IAsyncDisposable
     private int _seq;
 
     public DateTime BaseTime { get; private set; }
+
+    /// <summary>
+    /// Records the device had queued before this session reset its clock (read right after the handshake).
+    /// Their timestamps are only meaningful if <c>previousBaseTime</c> was passed to <see cref="ConnectAsync"/>.
+    /// </summary>
+    public IReadOnlyList<DataBufRecord> Backlog { get; private set; } = [];
     public int SpectrumFormatVersion { get; private set; }
     public FirmwareVersion? Firmware { get; private set; }
     public string Transport => _transport.Description;
@@ -18,12 +24,23 @@ public sealed class RadiacodeDevice : IAsyncDisposable
     private RadiacodeDevice(ITransport transport) => _transport = transport;
 
     /// <summary>Opens a session: exchange handshake, clock sync, firmware check, spectrum format.</summary>
-    public static async Task<RadiacodeDevice> ConnectAsync(ITransport transport, CancellationToken ct = default)
+    public static async Task<RadiacodeDevice> ConnectAsync(ITransport transport, CancellationToken ct = default, DateTime? previousBaseTime = null)
     {
         var dev = new RadiacodeDevice(transport);
         try
         {
             await dev.ExecuteAsync(Command.SetExchange, [0x01, 0xFF, 0x12, 0xFF], ct);
+            // Read what the device queued while disconnected BEFORE resetting its clock (DEVICE_TIME = 0),
+            // decoded against the previous session's base time.
+            try
+            {
+                dev.Backlog = Decoders.DecodeDataBuf(
+                    await dev.ReadRequestAsync(VirtualString.DataBuf, ct), previousBaseTime ?? DateTime.Now.AddSeconds(128));
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                dev.Backlog = [];
+            }
             await dev.SetLocalTimeAsync(DateTime.Now, ct);
             await dev.WriteRequestAsync(Vsfr.DeviceTime, U32(0), ct);
             dev.BaseTime = DateTime.Now.AddSeconds(128);
@@ -187,9 +204,13 @@ public sealed class RadiacodeDevice : IAsyncDisposable
         return b;
     }
 
+    private int _disposed;
+
+    /// <summary>Closes the link. Safe to call more than once and from another thread (app exit, crash handler).</summary>
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         await _transport.DisposeAsync();
-        _lock.Dispose();
+        // _lock is deliberately not disposed: a request still waiting on it would throw ObjectDisposedException.
     }
 }

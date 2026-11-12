@@ -258,6 +258,7 @@ public partial class MainViewModel : ObservableObject
         HistoryLog.RemoveOld();
         foreach (var (t, dose, cps) in HistoryLog.LoadSince(DateTime.Now.AddHours(-24)))
             _session.Add(new Sample(t, dose, cps));
+        _session.Sort((a, b) => a.Time.CompareTo(b.Time));
         if (_session.Count > 0) RefreshHistory();
     }
 
@@ -427,7 +428,7 @@ public partial class MainViewModel : ObservableObject
             Status = "Connecting over Bluetooth…";
             transport = await BleTransport.ConnectAsync(TimeSpan.FromSeconds(20), ct, target.Key);
             _liveText = "Live · Bluetooth";
-        }        await using var dev = await RadiacodeDevice.ConnectAsync(transport, ct);
+        }        await using var dev = await RadiacodeDevice.ConnectAsync(transport, ct, _settings.LastBaseTime);
         _dev = dev;
         Serial = await dev.GetSerialNumberAsync(ct);
         FirmwareText = dev.Firmware?.ToString() ?? "—";
@@ -441,8 +442,22 @@ public partial class MainViewModel : ObservableObject
         if (_settings.LastDevice != Serial) { _settings.LastDevice = Serial; _settings.Save(); }
         if (dev.Firmware is { } fw && !FirmwareUpdateText.StartsWith("Up to date", StringComparison.Ordinal)) _ = CheckFirmwareAsync(fw, Serial);
 
-        // Backlog: skip old real-time values, but keep the latest status (dose, battery, temperature).
-        if ((await dev.ReadDataBufAsync(ct)).OfType<RareData>().LastOrDefault() is { } rare) Apply(rare);
+        // Backlog: what the device stored while it was not connected. Old readings go into the history with
+        // their own timestamps; only the latest status (dose, battery, temperature) is applied as current.
+        var connectedAt = DateTime.Now;
+        // Diagnostics: what the device had queued before the clock reset, by record type and time span.
+        var queued = dev.Backlog;
+        AddEvent(queued.Count == 0 ? "Device memory: nothing queued"
+            : $"Device memory: {queued.Count} records ({string.Join(", ", queued.GroupBy(r => r.GetType().Name).Select(g => $"{g.Key} {g.Count()}"))}), "
+              + $"{queued.Min(r => r.Timestamp):dd.MM HH:mm:ss}–{queued.Max(r => r.Timestamp):dd.MM HH:mm:ss}"
+              + (_settings.LastBaseTime is null || _settings.LastDevice != Serial ? " (times unknown: no earlier session)" : ""));
+        if (_settings.LastBaseTime is not null && _settings.LastDevice == Serial) ImportStored(queued, connectedAt);
+        _settings.LastBaseTime = dev.BaseTime;
+        _settings.Save();
+
+        var backlog = await dev.ReadDataBufAsync(ct);
+        ImportStored(backlog, connectedAt);
+        if (backlog.OfType<RareData>().LastOrDefault() is { } rare) Apply(rare);
         else RestoreLastStatus();
         await ReadStatusAsync(dev, ct);
         await LoadDeviceSettingsAsync(dev, ct);
@@ -452,7 +467,9 @@ public partial class MainViewModel : ObservableObject
         {
             await Task.Delay(1000, ct);
             if (IsPaused) continue;
-            foreach (var rec in await dev.ReadDataBufAsync(ct)) Apply(rec);
+            var recs = await dev.ReadDataBufAsync(ct);
+            ImportStored(recs, connectedAt); // a long backlog can take more than one read
+            foreach (var rec in recs) if (!IsStored(rec, connectedAt)) Apply(rec);
             if (DateTime.Now >= _nextSpectrum)
             {
                 UpdateSpectrum(await dev.ReadSpectrumAsync(ct));
@@ -493,6 +510,20 @@ public partial class MainViewModel : ObservableObject
 
     [RelayCommand]
     private void Disconnect() => _cts?.Cancel();
+
+    /// <summary>
+    /// Called when the window closes, the process exits or the app crashes: stops streaming and closes the
+    /// device link right away instead of relying on the OS (on Linux, BlueZ would keep a Bluetooth link open
+    /// after the process is gone, and the detector does not log to its own memory while it is connected).
+    /// </summary>
+    public void Shutdown()
+    {
+        try { _cts?.Cancel(); } catch { /* already disposed */ }
+        try { _history.Flush(); } catch { /* best effort */ }
+        if (_dev is not { } dev) return;
+        try { Task.Run(async () => await dev.DisposeAsync()).Wait(TimeSpan.FromSeconds(3)); }
+        catch { /* best effort: the OS closes the rest */ }
+    }
 
     [RelayCommand]
     private void TogglePause()
@@ -996,6 +1027,48 @@ public partial class MainViewModel : ObservableObject
     }
 
     // ---- events -------------------------------------------------------------------------------
+    /// <summary>True for records the device stored before this connection (older than the connect time).</summary>
+    private static bool IsStored(DataBufRecord rec, DateTime connectedAt) =>
+        rec.Timestamp < connectedAt.AddSeconds(-30);
+
+    /// <summary>Puts readings the device stored while disconnected into the history, with their own timestamps.</summary>
+    private void ImportStored(IReadOnlyList<DataBufRecord> recs, DateTime connectedAt)
+    {
+        var oldest = connectedAt.AddDays(-HistoryLog.KeepDays);
+        var stored = recs.Where(r => IsStored(r, connectedAt) && r.Timestamp > oldest).ToList();
+        if (stored.Count == 0) return;
+
+        var readings = new List<(DateTime Time, double DoseNSvH, double Cps)>();
+        foreach (var rec in stored)
+        {
+            switch (rec)
+            {
+                case DoseRateDb db:
+                    readings.Add((db.Timestamp, db.DoseRateMicroSvH * 1000.0, db.CountRate));
+                    break;
+                case RealTimeData rt:
+                    readings.Add((rt.Timestamp, rt.DoseRateNanoSvH, rt.CountRate));
+                    break;
+                case DeviceEvent ev:
+                    AddEvent($"Device, {ev.Timestamp:dd.MM HH:mm} (stored): {ev.Event}");
+                    break;
+            }
+        }
+        if (readings.Count == 0) return;
+
+        _history.Flush();
+        int added = HistoryLog.Import(readings);
+        var since = connectedAt.AddHours(-24);
+        foreach (var r in readings.Where(r => r.Time >= since)) _session.Add(new Sample(r.Time, r.DoseNSvH, r.Cps));
+        _session.Sort((a, b) => a.Time.CompareTo(b.Time));
+        if (_session.Count > SessionLength) _session.RemoveRange(0, _session.Count - SessionLength);
+        RefreshHistory();
+
+        var first = readings.Min(r => r.Time);
+        var last = readings.Max(r => r.Time);
+        AddEvent($"Read {readings.Count} readings stored on the device ({first:dd.MM HH:mm}–{last:dd.MM HH:mm}), {added} new in history");
+    }
+
     private void AddEvent(string text)
     {
         var line = $"{DateTime.Now:HH:mm:ss}  {text}";

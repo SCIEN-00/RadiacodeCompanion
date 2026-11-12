@@ -71,6 +71,41 @@ public sealed class HistoryLog : IDisposable
         }
     }
 
+    /// <summary>
+    /// Merges readings that were stored on the device while it was not connected into the daily files:
+    /// skips timestamps that are already there (to the second) and keeps each file in time order.
+    /// Returns the number of readings added.
+    /// </summary>
+    public static int Import(IEnumerable<(DateTime Time, double DoseNSvH, double Cps)> readings)
+    {
+        int added = 0;
+        foreach (var day in readings.GroupBy(r => r.Time.Date))
+        {
+            try
+            {
+                Directory.CreateDirectory(Folder);
+                var path = FileFor(day.Key);
+                var lines = new SortedDictionary<string, string>(StringComparer.Ordinal);
+                if (File.Exists(path))
+                    foreach (var line in File.ReadAllLines(path).Skip(1))
+                        if (line.Length >= 19) lines[line[..19]] = line;
+                foreach (var (time, dose, cps) in day)
+                {
+                    var key = time.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture);
+                    if (lines.ContainsKey(key)) continue;
+                    lines[key] = key + "," + dose.ToString("F2", CultureInfo.InvariantCulture) + ","
+                                     + cps.ToString("F3", CultureInfo.InvariantCulture);
+                    added++;
+                }
+                File.WriteAllText(path, Header + "\n" + string.Join("\n", lines.Values) + "\n");
+            }
+            catch
+            {
+                // A locked or unreadable file only loses the import for that day.
+            }
+        }
+        return added;
+    }
     public static void RemoveOld()
     {
         try
