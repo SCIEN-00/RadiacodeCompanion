@@ -467,15 +467,6 @@ public partial class MainViewModel : ObservableObject
         // Backlog: what the device stored while it was not connected. Old readings go into the history with
         // their own timestamps; only the latest status (dose, battery, temperature) is applied as current.
         var connectedAt = DateTime.Now;
-        // Diagnostics: what the device had queued before the clock reset, by record type and time span.
-        var queued = dev.Backlog;
-        AddEvent(queued.Count == 0 ? "Device memory: nothing queued"
-            : $"Device memory: {queued.Count} records ({string.Join(", ", queued.GroupBy(r => r.GetType().Name).Select(g => $"{g.Key} {g.Count()}"))}), "
-              + $"{queued.Min(r => r.Timestamp):dd.MM HH:mm:ss}–{queued.Max(r => r.Timestamp):dd.MM HH:mm:ss}"
-              + (_settings.LastBaseTime is null || _settings.LastDevice != Serial ? " (times unknown: no earlier session)" : ""));
-        if (_settings.LastBaseTime is not null && _settings.LastDevice == Serial) ImportStored(queued, connectedAt);
-        _settings.LastBaseTime = dev.BaseTime;
-        _settings.Save();
 
         var backlog = await dev.ReadDataBufAsync(ct);
         ImportStored(backlog, connectedAt);

@@ -30,17 +30,6 @@ public sealed class RadiacodeDevice : IAsyncDisposable
         try
         {
             await dev.ExecuteAsync(Command.SetExchange, [0x01, 0xFF, 0x12, 0xFF], ct);
-            // Read what the device queued while disconnected BEFORE resetting its clock (DEVICE_TIME = 0),
-            // decoded against the previous session's base time.
-            try
-            {
-                dev.Backlog = Decoders.DecodeDataBuf(
-                    await dev.ReadRequestAsync(VirtualString.DataBuf, ct), previousBaseTime ?? DateTime.Now.AddSeconds(128));
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                dev.Backlog = [];
-            }
             await dev.SetLocalTimeAsync(DateTime.Now, ct);
             await dev.WriteRequestAsync(Vsfr.DeviceTime, U32(0), ct);
             dev.BaseTime = DateTime.Now.AddSeconds(128);
