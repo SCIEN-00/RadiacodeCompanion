@@ -39,7 +39,7 @@ public sealed record DeviceSettings
 
     // Optional registers (from the device's own register map, RC-110 FW 4.15); only written if the device reported them.
     public uint SoundVolume { get; init; } = 50;     // 0–100
-    public bool English { get; init; } = true;      // DEVICE_LANG: 1 = English, 0 = Russian (cdump/radiacode)
+    public bool English { get; init; } = true;      // DEVICE_LANG: 0 = English (RC-110 FW 4.15; cdump/radiacode has it reversed)
     public bool DoseInSievert { get; init; } = true; // DS_UNITS: 1 = Sv, 0 = R
     public bool NanoSievertPerHour { get; init; } = true; // USE_nSv_h: small dose rates in nSv/h
     public bool CountsPerMinute { get; init; }       // CR_UNITS: 1 = cpm, 0 = cps
@@ -86,7 +86,7 @@ public sealed record DeviceSettings
         DoseAlarm1MicroSv = r[Vsfr.DoseLevel1] / 100.0,
         DoseAlarm2MicroSv = r[Vsfr.DoseLevel2] / 100.0,
         SoundVolume = r.GetValueOrDefault(Vsfr.SoundVolume, 50u),
-        English = r.GetValueOrDefault(Vsfr.DeviceLang, 1u) != 0,
+        English = r.GetValueOrDefault(Vsfr.DeviceLang, 0u) == 0,
         DoseInSievert = r.GetValueOrDefault(Vsfr.DoseUnits, 1u) != 0,
         NanoSievertPerHour = r.GetValueOrDefault(Vsfr.UseNanoSvH, 1u) != 0,
         CountsPerMinute = r.GetValueOrDefault(Vsfr.CountRateUnits, 0u) != 0,
@@ -113,7 +113,7 @@ public sealed record DeviceSettings
             [Vsfr.DoseLevel1] = ToRaw(DoseAlarm1MicroSv * 100.0),
             [Vsfr.DoseLevel2] = ToRaw(DoseAlarm2MicroSv * 100.0),
             [Vsfr.SoundVolume] = Math.Min(SoundVolume, 100u),
-            [Vsfr.DeviceLang] = English ? 1u : 0u,
+            [Vsfr.DeviceLang] = English ? 0u : 1u,
             [Vsfr.DoseUnits] = DoseInSievert ? 1u : 0u,
             [Vsfr.UseNanoSvH] = NanoSievertPerHour ? 1u : 0u,
             [Vsfr.CountRateUnits] = CountsPerMinute ? 1u : 0u,

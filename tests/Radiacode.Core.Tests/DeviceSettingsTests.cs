@@ -56,6 +56,7 @@ public class DeviceSettingsTests
         Assert.Equal(50u, s.SoundVolume);
         Assert.True(s.DoseInSievert);
         Assert.False(s.CountsPerMinute);
+        Assert.True(s.English); // device menu was in English with DEVICE_LANG = 0
         var back = (IReadOnlyDictionary<Vsfr, uint>)toRaw.Invoke(s with { SoundVolume = 250, Fahrenheit = true }, null)!;
         Assert.Equal(100u, back[Vsfr.SoundVolume]);
         Assert.Equal(1u, back[Vsfr.TempUnits]);
