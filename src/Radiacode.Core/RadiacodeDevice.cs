@@ -178,6 +178,8 @@ public sealed class RadiacodeDevice : IAsyncDisposable
         var raw = new Dictionary<Vsfr, uint>();
         foreach (var id in DeviceSettings.Registers)
             raw[id] = await ReadSfrAsync(id, ct) ?? throw new ProtocolException($"Setting {id} not available on this firmware");
+        foreach (var id in DeviceSettings.OptionalRegisters)
+            if (await ReadSfrAsync(id, ct) is { } v) raw[id] = v;
         return DeviceSettings.FromRaw(raw);
     }
 
@@ -188,7 +190,7 @@ public sealed class RadiacodeDevice : IAsyncDisposable
         int written = 0;
         foreach (var (id, value) in wanted.ToRaw())
         {
-            if (before[id] == value) continue;
+            if (!before.TryGetValue(id, out var old) || old == value) continue; // unknown on this firmware, or unchanged
             await WriteRequestAsync(id, U32(value), ct);
             written++;
         }
@@ -196,6 +198,34 @@ public sealed class RadiacodeDevice : IAsyncDisposable
     }
 
     public Task ResetDoseAsync(CancellationToken ct = default) => WriteRequestAsync(Vsfr.DoseReset, null, ct);
+
+    /// <summary>Reads diagnostic registers (read-only; values the device does not report are skipped).</summary>
+    public async Task<DeviceDiagnostics> ReadDiagnosticsAsync(CancellationToken ct = default)
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var items = new List<(string, string)>();
+        static string F(uint v) => BitConverter.UInt32BitsToSingle(v).ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+        async Task<uint?> R(Vsfr id) => await ReadSfrAsync(id, ct);
+
+        if (await R(Vsfr.TempDegC) is { } t) items.Add(("Detector temperature", F(t) + " °C"));
+        if (await R(Vsfr.RawTempDegC) is { } rt) items.Add(("Detector temperature, raw", F(rt) + " °C"));
+        if (await R(Vsfr.TempDnDegC) is { } dn && await R(Vsfr.TempUpDegC) is { } up) items.Add(("Temperature band", $"{F(dn)} … {F(up)} °C"));
+        if (await R(Vsfr.ChargerMonitorTempDegC) is { } chg) items.Add(("Charger temperature", $"{(int)chg} °C"));
+        if (await R(Vsfr.BiasMilliVolt) is { } mv) items.Add(("Sensor (SiPM) bias voltage", (mv / 1000.0).ToString("F3", inv) + " V"));
+        if (await R(Vsfr.ComparatorLevel) is { } cl) items.Add(("Comparator level", ((short)cl).ToString(inv)));
+        if (await R(Vsfr.DisplayContrast) is { } dc) items.Add(("Display contrast", dc.ToString(inv)));
+        if (await R(Vsfr.DisplayBacklightOn) is { } bl) items.Add(("Display backlight always on", bl != 0 ? "yes" : "no"));
+        if (await R(Vsfr.BleTxPower) is { } tx) items.Add(("Bluetooth transmit power level", tx.ToString(inv)));
+        if (await R(Vsfr.AlarmMode) is { } am) items.Add(("Alarm mode", am.ToString(inv)));
+        if (await R(Vsfr.CpsFilter) is { } cf) items.Add(("Count-rate filter", cf.ToString(inv)));
+        if (await R(Vsfr.SysDeviceId) is { } did) items.Add(("Device ID", $"0x{did:X8}"));
+        if (await R(Vsfr.SysMcuId0) is { } a && await R(Vsfr.SysMcuId1) is { } b && await R(Vsfr.SysMcuId2) is { } c)
+            items.Add(("Processor unique ID", $"{c:X8}{b:X8}{a:X8}"));
+        if (await R(Vsfr.SysMcuTemp) is { } mt) items.Add(("Processor temperature, raw", mt.ToString(inv)));
+        if (await R(Vsfr.SysMcuVref) is { } vr) items.Add(("Processor reference voltage, raw", vr.ToString(inv)));
+        if (await R(Vsfr.SysRxSize) is { } rx && await R(Vsfr.SysTxSize) is { } txs) items.Add(("Protocol buffers (rx / tx)", $"{rx} / {txs} bytes"));
+        return new DeviceDiagnostics(items);
+    }
 
     private static byte[] U32(uint v)
     {

@@ -62,6 +62,29 @@ public enum Vsfr : uint
     DoseLevel2 = 0x8015,
     TempDegC = 0x8024,
     ChargerState = 0xC200,
+
+    // Found in the device's own register map (VS SFR_FILE 0x101), RC-110 firmware 4.15.
+    DisplayContrast = 0x0512,
+    SoundVolume = 0x0521,
+    BleTxPower = 0x0700,
+    AlarmMode = 0x05E0,
+    CpsFilter = 0x8005,
+    UseNanoSvH = 0x800C,
+    TempUnits = 0x8016,
+    RawTempDegC = 0x8033,
+    TempUpDegC = 0x8034,
+    TempDnDegC = 0x8035,
+    BiasMilliVolt = 0xC000,
+    ComparatorLevel = 0xC001,
+    ChargerMonitorTempDegC = 0xC300,
+    SysMcuId0 = 0xFFFF0000,
+    SysMcuId1 = 0xFFFF0001,
+    SysMcuId2 = 0xFFFF0002,
+    SysDeviceId = 0xFFFF0005,
+    SysRxSize = 0xFFFF0007,
+    SysTxSize = 0xFFFF0008,
+    SysMcuVref = 0xFFFF000C,
+    SysMcuTemp = 0xFFFF000D,
 }
 
 public enum DeviceEventId : byte

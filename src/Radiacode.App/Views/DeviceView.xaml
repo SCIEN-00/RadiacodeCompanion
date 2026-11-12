@@ -97,10 +97,14 @@
 
             <Grid ColumnSpacing="24" RowSpacing="12" IsHitTestVisible="{x:Bind ViewModel.DeviceSettingsLoaded, Mode=OneWay}">
               <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+              <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
 
               <StackPanel Spacing="4">
                 <TextBlock Style="{StaticResource Label}" Text="SOUND &amp; VIBRATION" />
                 <ToggleSwitch Header="Sound" IsOn="{x:Bind ViewModel.DevSoundOn, Mode=TwoWay}" />
+                <Slider Header="Volume" Minimum="0" Maximum="100" StepFrequency="10" TickFrequency="10" TickPlacement="BottomRight"
+                        Value="{x:Bind ViewModel.DevSoundVolume, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.DevHasVolume, Mode=OneWay}"
+                        MaxWidth="280" HorizontalAlignment="Left" MinWidth="220" />
                 <CheckBox Content="Click sound for each detected particle" IsChecked="{x:Bind ViewModel.DevClickSound, Mode=TwoWay}" />
                 <CheckBox Content="Button press sound" IsChecked="{x:Bind ViewModel.DevButtonSound, Mode=TwoWay}" />
                 <ToggleSwitch Header="Vibration" IsOn="{x:Bind ViewModel.DevVibrationOn, Mode=TwoWay}" />
@@ -117,6 +121,8 @@
                   <x:String>10 s</x:String>
                   <x:String>15 s</x:String>
                   <x:String>30 s</x:String>
+                  <x:String>2 min</x:String>
+                  <x:String>5 min</x:String>
                 </ComboBox>
                 <ComboBox Header="Orientation" MinWidth="160" SelectedIndex="{x:Bind ViewModel.DevDirectionIndex, Mode=TwoWay}">
                   <x:String>Automatic</x:String>
@@ -144,6 +150,41 @@
                 </Grid>
                 <TextBlock Style="{StaticResource Muted}" FontSize="13"
                            Text="These alarms run on the device itself (sound/vibration/LED), independent of the app's own alarm in Settings. Very large values mean the alarm is effectively off." />
+              </StackPanel>
+
+              <StackPanel Grid.Row="1" Spacing="4" IsHitTestVisible="{x:Bind ViewModel.DevHasUnits, Mode=OneWay}">
+                <TextBlock Style="{StaticResource Label}" Text="UNITS &amp; LANGUAGE (ON THE DEVICE)" />
+                <ComboBox Header="Dose units" MinWidth="160" SelectedIndex="{x:Bind ViewModel.DevDoseUnitsIndex, Mode=TwoWay}">
+                  <x:String>Sievert (Sv)</x:String>
+                  <x:String>Roentgen (R)</x:String>
+                </ComboBox>
+                <CheckBox Content="Show low dose rates in nSv/h" IsChecked="{x:Bind ViewModel.DevNanoSievert, Mode=TwoWay}" />
+                <ComboBox Header="Count rate" MinWidth="160" SelectedIndex="{x:Bind ViewModel.DevCountUnitsIndex, Mode=TwoWay}">
+                  <x:String>Counts per second (cps)</x:String>
+                  <x:String>Counts per minute (cpm)</x:String>
+                </ComboBox>
+                <ComboBox Header="Temperature" MinWidth="160" SelectedIndex="{x:Bind ViewModel.DevTempUnitsIndex, Mode=TwoWay}">
+                  <x:String>Celsius (°C)</x:String>
+                  <x:String>Fahrenheit (°F)</x:String>
+                </ComboBox>
+                <ComboBox Header="Menu language" MinWidth="160" SelectedIndex="{x:Bind ViewModel.DevLanguageIndex, Mode=TwoWay}">
+                  <x:String>English</x:String>
+                  <x:String>Russian</x:String>
+                </ComboBox>
+                <TextBlock Style="{StaticResource Muted}" FontSize="13"
+                           Text="Changes what the detector's own screen shows. The app always uses nSv/h, cps and °C." />
+              </StackPanel>
+
+              <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Spacing="4">
+                <TextBlock Style="{StaticResource Label}" Text="DIAGNOSTICS (READ-ONLY)" />
+                <Grid ColumnSpacing="16">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                  <TextBlock Style="{StaticResource Muted}" Text="{x:Bind ViewModel.DeviceDiagnosticNames, Mode=OneWay}" />
+                  <TextBlock Grid.Column="1" Style="{StaticResource Value}" IsTextSelectionEnabled="True"
+                             Text="{x:Bind ViewModel.DeviceDiagnosticValues, Mode=OneWay}" />
+                </Grid>
+                <TextBlock Style="{StaticResource Muted}" FontSize="13"
+                           Text="Values from the detector's internal register map. Calibration and power registers are only shown, never changed by the app." />
               </StackPanel>
             </Grid>
           </StackPanel>

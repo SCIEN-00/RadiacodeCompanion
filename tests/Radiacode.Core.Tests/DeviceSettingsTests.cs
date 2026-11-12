@@ -31,6 +31,38 @@ public class DeviceSettingsTests
     }
 
     [Fact]
+    public void OptionalRegisters_OnlyWrittenWhenReported()
+    {
+        var fromRaw = typeof(DeviceSettings).GetMethod("FromRaw", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        var toRaw = typeof(DeviceSettings).GetMethod("ToRaw", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance, [])!;
+        var baseRaw = new Dictionary<Vsfr, uint>
+        {
+            [Vsfr.SoundOn] = 0, [Vsfr.SoundCtrl] = 8185, [Vsfr.VibroOn] = 0, [Vsfr.VibroCtrl] = 7423,
+            [Vsfr.DisplayBrightness] = 9, [Vsfr.DisplayOffTime] = 5, [Vsfr.DisplayDirection] = 0,
+            [Vsfr.DoseRateLevel1] = 40, [Vsfr.DoseRateLevel2] = 120, [Vsfr.CountRateLevel1] = 200, [Vsfr.CountRateLevel2] = 600,
+            [Vsfr.DoseLevel1] = 999999999, [Vsfr.DoseLevel2] = 999999999,
+        };
+        var old = (DeviceSettings)fromRaw.Invoke(null, [baseRaw])!;
+        Assert.Equal(300u, old.DisplayOffSeconds); // index 5 = 5 min
+        Assert.DoesNotContain(Vsfr.SoundVolume, ((IReadOnlyDictionary<Vsfr, uint>)toRaw.Invoke(old, null)!).Keys);
+
+        // Values read from an RC-110 on firmware 4.15 (2026-11-12).
+        var full = new Dictionary<Vsfr, uint>(baseRaw)
+        {
+            [Vsfr.SoundVolume] = 50, [Vsfr.DeviceLang] = 0, [Vsfr.DoseUnits] = 1, [Vsfr.UseNanoSvH] = 1,
+            [Vsfr.CountRateUnits] = 0, [Vsfr.TempUnits] = 0,
+        };
+        var s = (DeviceSettings)fromRaw.Invoke(null, [full])!;
+        Assert.Equal(50u, s.SoundVolume);
+        Assert.True(s.DoseInSievert);
+        Assert.False(s.CountsPerMinute);
+        var back = (IReadOnlyDictionary<Vsfr, uint>)toRaw.Invoke(s with { SoundVolume = 250, Fahrenheit = true }, null)!;
+        Assert.Equal(100u, back[Vsfr.SoundVolume]);
+        Assert.Equal(1u, back[Vsfr.TempUnits]);
+        Assert.Equal(0u, back[Vsfr.DeviceLang]);
+    }
+
+    [Fact]
     public void WithFlag_KeepsUnknownBits()
     {
         uint ctrl = 8187; // 0x1FFB: includes bits beyond the known ones

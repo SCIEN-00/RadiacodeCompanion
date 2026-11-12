@@ -189,6 +189,16 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial double DevCountRateAlarm2 { get; set; }
     [ObservableProperty] public partial double DevDoseAlarm1 { get; set; }
     [ObservableProperty] public partial double DevDoseAlarm2 { get; set; }
+    [ObservableProperty] public partial double DevSoundVolume { get; set; }
+    [ObservableProperty] public partial int DevLanguageIndex { get; set; }        // 0 English, 1 Russian
+    [ObservableProperty] public partial int DevDoseUnitsIndex { get; set; }       // 0 Sv, 1 R
+    [ObservableProperty] public partial bool DevNanoSievert { get; set; }
+    [ObservableProperty] public partial int DevCountUnitsIndex { get; set; }      // 0 cps, 1 cpm
+    [ObservableProperty] public partial int DevTempUnitsIndex { get; set; }       // 0 °C, 1 °F
+    [ObservableProperty] public partial bool DevHasVolume { get; set; }
+    [ObservableProperty] public partial bool DevHasUnits { get; set; }
+    [ObservableProperty] public partial string DeviceDiagnosticNames { get; set; } = "";
+    [ObservableProperty] public partial string DeviceDiagnosticValues { get; set; } = "";
     [ObservableProperty] public partial string TransportText { get; set; }
 
     // ---- settings -----------------------------------------------------------------------------
@@ -718,8 +728,19 @@ public partial class MainViewModel : ObservableObject
             DevCountRateAlarm2 = s.CountRateAlarm2Cps;
             DevDoseAlarm1 = s.DoseAlarm1MicroSv;
             DevDoseAlarm2 = s.DoseAlarm2MicroSv;
+            DevSoundVolume = s.SoundVolume;
+            DevLanguageIndex = s.English ? 0 : 1;
+            DevDoseUnitsIndex = s.DoseInSievert ? 0 : 1;
+            DevNanoSievert = s.NanoSievertPerHour;
+            DevCountUnitsIndex = s.CountsPerMinute ? 1 : 0;
+            DevTempUnitsIndex = s.Fahrenheit ? 1 : 0;
+            DevHasVolume = s.Has(Vsfr.SoundVolume);
+            DevHasUnits = s.Has(Vsfr.DoseUnits);
             DeviceSettingsLoaded = true;
             DeviceSettingsText = $"Read from the device at {DateTime.Now:HH:mm:ss}.";
+            var diag = await dev.ReadDiagnosticsAsync(ct);
+            DeviceDiagnosticNames = string.Join("\n", diag.Items.Select(i => i.Name));
+            DeviceDiagnosticValues = string.Join("\n", diag.Items.Select(i => i.Value));
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -745,7 +766,7 @@ public partial class MainViewModel : ObservableObject
             SoundCtrl = DeviceSettings.WithFlag(DeviceSettings.WithFlag(current.SoundCtrl, NotifyEvents.Clicks, DevClickSound), NotifyEvents.Buttons, DevButtonSound),
             VibrationOn = DevVibrationOn,
             Brightness = (uint)Math.Clamp(Math.Round(DevBrightness), 0, 9),
-            DisplayOffSeconds = DeviceSettings.OffTimes[Math.Clamp(DevDisplayOffIndex, 0, 3)],
+            DisplayOffSeconds = DeviceSettings.OffTimes[Math.Clamp(DevDisplayOffIndex, 0, DeviceSettings.OffTimes.Length - 1)],
             Direction = (DisplayDirection)Math.Clamp(DevDirectionIndex, 0, 2),
             DoseRateAlarm1NSvH = Valid(DevDoseRateAlarm1),
             DoseRateAlarm2NSvH = Valid(DevDoseRateAlarm2),
@@ -753,6 +774,12 @@ public partial class MainViewModel : ObservableObject
             CountRateAlarm2Cps = Valid(DevCountRateAlarm2),
             DoseAlarm1MicroSv = Valid(DevDoseAlarm1),
             DoseAlarm2MicroSv = Valid(DevDoseAlarm2),
+            SoundVolume = (uint)Math.Clamp(Math.Round(Valid(DevSoundVolume)), 0, 100),
+            English = DevLanguageIndex == 0,
+            DoseInSievert = DevDoseUnitsIndex == 0,
+            NanoSievertPerHour = DevNanoSievert,
+            CountsPerMinute = DevCountUnitsIndex == 1,
+            Fahrenheit = DevTempUnitsIndex == 1,
         };
         try
         {

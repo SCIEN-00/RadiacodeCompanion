@@ -28,7 +28,7 @@ public sealed record DeviceSettings
     public bool VibrationOn { get; init; }
     public uint VibroCtrl { get; init; }
     public uint Brightness { get; init; }            // 0–9
-    public uint DisplayOffSeconds { get; init; }     // 5, 10, 15 or 30
+    public uint DisplayOffSeconds { get; init; }     // see OffTimes
     public DisplayDirection Direction { get; init; }
     public double DoseRateAlarm1NSvH { get; init; }
     public double DoseRateAlarm2NSvH { get; init; }
@@ -37,10 +37,24 @@ public sealed record DeviceSettings
     public double DoseAlarm1MicroSv { get; init; }
     public double DoseAlarm2MicroSv { get; init; }
 
+    // Optional registers (from the device's own register map, RC-110 FW 4.15); only written if the device reported them.
+    public uint SoundVolume { get; init; } = 50;     // 0–100
+    public bool English { get; init; } = true;      // DEVICE_LANG: 1 = English, 0 = Russian (cdump/radiacode)
+    public bool DoseInSievert { get; init; } = true; // DS_UNITS: 1 = Sv, 0 = R
+    public bool NanoSievertPerHour { get; init; } = true; // USE_nSv_h: small dose rates in nSv/h
+    public bool CountsPerMinute { get; init; }       // CR_UNITS: 1 = cpm, 0 = cps
+    public bool Fahrenheit { get; init; }            // TEMP_UNITS: 1 = °F, 0 = °C
+
+    /// <summary>Registers the device actually reported; <see cref="ToRaw"/> only returns these (all, if empty).</summary>
+    internal IReadOnlySet<Vsfr> Available { get; init; } = new HashSet<Vsfr>();
+
+    public bool Has(Vsfr register) => Available.Count == 0 || Available.Contains(register);
+
     public bool ClickSound => (SoundCtrl & (uint)NotifyEvents.Clicks) != 0;
     public bool ButtonSound => (SoundCtrl & (uint)NotifyEvents.Buttons) != 0;
 
-    public static readonly uint[] OffTimes = [5, 10, 15, 30];
+    /// <summary>Display auto-off choices in seconds, by register index (list from the device configuration).</summary>
+    public static readonly uint[] OffTimes = [5, 10, 15, 30, 120, 300];
 
     /// <summary>Registers this record maps to, in read order.</summary>
     internal static readonly Vsfr[] Registers =
@@ -48,6 +62,12 @@ public sealed record DeviceSettings
         Vsfr.SoundOn, Vsfr.SoundCtrl, Vsfr.VibroOn, Vsfr.VibroCtrl, Vsfr.DisplayBrightness, Vsfr.DisplayOffTime,
         Vsfr.DisplayDirection, Vsfr.DoseRateLevel1, Vsfr.DoseRateLevel2, Vsfr.CountRateLevel1, Vsfr.CountRateLevel2,
         Vsfr.DoseLevel1, Vsfr.DoseLevel2,
+    ];
+
+    /// <summary>Registers read when present; missing ones are left out and never written.</summary>
+    internal static readonly Vsfr[] OptionalRegisters =
+    [
+        Vsfr.SoundVolume, Vsfr.DeviceLang, Vsfr.DoseUnits, Vsfr.UseNanoSvH, Vsfr.CountRateUnits, Vsfr.TempUnits,
     ];
 
     internal static DeviceSettings FromRaw(IReadOnlyDictionary<Vsfr, uint> r) => new()
@@ -65,12 +85,19 @@ public sealed record DeviceSettings
         CountRateAlarm2Cps = r[Vsfr.CountRateLevel2] / 10.0,
         DoseAlarm1MicroSv = r[Vsfr.DoseLevel1] / 100.0,
         DoseAlarm2MicroSv = r[Vsfr.DoseLevel2] / 100.0,
+        SoundVolume = r.GetValueOrDefault(Vsfr.SoundVolume, 50u),
+        English = r.GetValueOrDefault(Vsfr.DeviceLang, 1u) != 0,
+        DoseInSievert = r.GetValueOrDefault(Vsfr.DoseUnits, 1u) != 0,
+        NanoSievertPerHour = r.GetValueOrDefault(Vsfr.UseNanoSvH, 1u) != 0,
+        CountsPerMinute = r.GetValueOrDefault(Vsfr.CountRateUnits, 0u) != 0,
+        Fahrenheit = r.GetValueOrDefault(Vsfr.TempUnits, 0u) != 0,
+        Available = r.Keys.ToHashSet(),
     };
 
     internal IReadOnlyDictionary<Vsfr, uint> ToRaw()
     {
         int offIndex = Array.IndexOf(OffTimes, DisplayOffSeconds);
-        return new Dictionary<Vsfr, uint>
+        var all = new Dictionary<Vsfr, uint>
         {
             [Vsfr.SoundOn] = SoundOn ? 1u : 0u,
             [Vsfr.SoundCtrl] = SoundCtrl,
@@ -85,7 +112,14 @@ public sealed record DeviceSettings
             [Vsfr.CountRateLevel2] = ToRaw(CountRateAlarm2Cps * 10.0),
             [Vsfr.DoseLevel1] = ToRaw(DoseAlarm1MicroSv * 100.0),
             [Vsfr.DoseLevel2] = ToRaw(DoseAlarm2MicroSv * 100.0),
+            [Vsfr.SoundVolume] = Math.Min(SoundVolume, 100u),
+            [Vsfr.DeviceLang] = English ? 1u : 0u,
+            [Vsfr.DoseUnits] = DoseInSievert ? 1u : 0u,
+            [Vsfr.UseNanoSvH] = NanoSievertPerHour ? 1u : 0u,
+            [Vsfr.CountRateUnits] = CountsPerMinute ? 1u : 0u,
+            [Vsfr.TempUnits] = Fahrenheit ? 1u : 0u,
         };
+        return all.Where(kv => Has(kv.Key)).ToDictionary();
     }
 
     private static uint ToRaw(double v) => (uint)Math.Clamp(Math.Round(v), 0, 999_999_999);
@@ -93,3 +127,6 @@ public sealed record DeviceSettings
     /// <summary>Sets or clears one event bit, keeping all other (including unknown) bits.</summary>
     public static uint WithFlag(uint ctrl, NotifyEvents flag, bool on) => on ? ctrl | (uint)flag : ctrl & ~(uint)flag;
 }
+
+/// <summary>Read-only device diagnostics (register map, RC-110 FW 4.15). Never written by the app.</summary>
+public sealed record DeviceDiagnostics(IReadOnlyList<(string Name, string Value)> Items);

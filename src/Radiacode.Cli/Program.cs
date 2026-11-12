@@ -43,6 +43,51 @@ Console.WriteLine($"Spectrum format v{dev.SpectrumFormatVersion}, transport {dev
 
 switch (mode)
 {
+    case "regs":
+    {
+        // Debug: read every register listed in the device's own register map (SFR_FILE) and print its value.
+        var map = System.Text.Encoding.Latin1.GetString((await dev.ReadRequestAsync((VirtualString)0x101, cts.Token)).ReadToEnd());
+        foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(map, @"\[([^\]]+)\]\s*\r?\nAddr=0x([0-9A-Fa-f]+)((?:\r?\n(?!\[)[^\r\n]*)*)"))
+        {
+            var name = m.Groups[1].Value; var addr = Convert.ToUInt32(m.Groups[2].Value, 16); var meta = m.Groups[3].Value;
+            uint? v = null;
+            try { v = await dev.ReadSfrAsync((Vsfr)addr, cts.Token); } catch (Exception ex) { Console.WriteLine($"{name,-28} 0x{addr:X4}  ERROR {ex.Message}"); continue; }
+            string shown = v is not { } raw ? "n/a"
+                : meta.Contains("Type=float") ? BitConverter.UInt32BitsToSingle(raw).ToString("G6", System.Globalization.CultureInfo.InvariantCulture)
+                : meta.Contains("Signed=1") && meta.Contains("Size=2") ? ((short)raw).ToString()
+                : meta.Contains("Signed=1") && meta.Contains("Size=1") ? ((sbyte)raw).ToString()
+                : meta.Contains("Signed=1") ? ((int)raw).ToString() : $"{raw} (0x{raw:X})";
+            Console.WriteLine($"{name,-28} 0x{addr:X4}  {shown}");
+        }
+        break;
+    }
+    case "probe":
+    {
+        // Debug: read the virtual strings whose content is not known (read-only, DATA_BUF excluded) and the
+        // hardware config, and write each raw answer to <dir>/<name>.bin for offline decoding.
+        var dir = args.Length > 1 ? args[1] : "probe";
+        Directory.CreateDirectory(dir);
+        var targets = new (string Name, Func<Task<byte[]>> Read)[]
+        {
+            ("vs_02_configuration", async () => (await dev.ReadRequestAsync((VirtualString)0x02, cts.Token)).ReadToEnd()),
+            ("vs_03_fw_descriptor", async () => (await dev.ReadRequestAsync((VirtualString)0x03, cts.Token)).ReadToEnd()),
+            ("vs_0F_text_message", async () => (await dev.ReadRequestAsync((VirtualString)0x0F, cts.Token)).ReadToEnd()),
+            ("vs_E0_mem_snapshot", async () => (await dev.ReadRequestAsync((VirtualString)0xE0, cts.Token)).ReadToEnd()),
+            ("vs_101_sfr_file", async () => (await dev.ReadRequestAsync((VirtualString)0x101, cts.Token)).ReadToEnd()),
+            ("cmd_0807_hw_config", async () => (await dev.ExecuteAsync(Command.RdHwConfig, null, cts.Token)).ReadToEnd()),
+        };
+        foreach (var (name, read) in targets)
+        {
+            try
+            {
+                var bytes = await read();
+                File.WriteAllBytes(Path.Combine(dir, name + ".bin"), bytes);
+                Console.WriteLine($"{name}: {bytes.Length} bytes");
+            }
+            catch (Exception ex) { Console.WriteLine($"{name}: ERROR {ex.GetType().Name}: {ex.Message}"); }
+        }
+        break;
+    }
     case "vs":
     {
         // Debug: read a virtual string by hex id, print as text + hex.
