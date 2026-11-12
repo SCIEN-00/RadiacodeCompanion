@@ -262,6 +262,13 @@ public partial class MainViewModel : ObservableObject
         FirmwareUpdateText = "Checked after connecting.";
         SpectrumFormatText = "—";
         DeviceSettingsText = "Read from the device after connecting.";
+        // Device settings are written as soon as they change (toggle switches apply immediately, per Fluent guidance).
+        PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is { Length: > 3 } n && n.StartsWith("Dev", StringComparison.Ordinal) && char.IsUpper(n[3])
+                && !n.StartsWith("DevHas", StringComparison.Ordinal))
+                ScheduleDeviceApply();
+        };
         TransportText = "—";
 
         ThemeIndex = _settings.Theme;
@@ -714,8 +721,23 @@ public partial class MainViewModel : ObservableObject
     }
 
     // ---- device settings ------------------------------------------------------------------------
+    private bool _loadingDeviceSettings;
+    private CancellationTokenSource? _deviceApplyCts;
+
+    /// <summary>Writes the changed settings shortly after the last edit (sliders and number boxes fire several changes).</summary>
+    private async void ScheduleDeviceApply()
+    {
+        if (_loadingDeviceSettings || !DeviceSettingsLoaded || _dev is null) return;
+        _deviceApplyCts?.Cancel();
+        var cts = _deviceApplyCts = new CancellationTokenSource();
+        try { await Task.Delay(400, cts.Token); }
+        catch (OperationCanceledException) { return; }
+        await ApplyDeviceSettingsAsync();
+    }
+
     private async Task LoadDeviceSettingsAsync(RadiacodeDevice dev, CancellationToken ct)
     {
+        _loadingDeviceSettings = true;
         try
         {
             var s = await dev.ReadSettingsAsync(ct);
@@ -756,6 +778,10 @@ public partial class MainViewModel : ObservableObject
         {
             DeviceSettingsLoaded = false;
             DeviceSettingsText = $"Could not read device settings: {ex.Message}";
+        }
+        finally
+        {
+            _loadingDeviceSettings = false;
         }
     }
 
@@ -799,6 +825,7 @@ public partial class MainViewModel : ObservableObject
             int n = await dev.WriteSettingsAsync(current, wanted);
             AddEvent(n == 0 ? "Device settings: nothing changed" : $"Device settings written ({n} value{(n == 1 ? "" : "s")})");
             await LoadDeviceSettingsAsync(dev, default); // read back what the device actually stored
+            if (n > 0) DeviceSettingsText = $"Saved to the device at {DateTime.Now:HH:mm:ss}.";
         }
         catch (Exception ex)
         {

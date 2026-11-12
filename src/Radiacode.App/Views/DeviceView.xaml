@@ -90,8 +90,6 @@
               </StackPanel>
               <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
                 <Button Content="Reload" Command="{x:Bind ViewModel.ReloadDeviceSettingsCommand}" IsEnabled="{x:Bind ViewModel.IsConnected, Mode=OneWay}" />
-                <Button Content="Write to device" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.ApplyDeviceSettingsCommand}"
-                        IsEnabled="{x:Bind ViewModel.DeviceSettingsLoaded, Mode=OneWay}" />
               </StackPanel>
             </Grid>
 
@@ -105,14 +103,14 @@
                 <Slider Header="Volume" Minimum="0" Maximum="100" StepFrequency="10" TickFrequency="10" TickPlacement="BottomRight"
                         Value="{x:Bind ViewModel.DevSoundVolume, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.DevHasVolume, Mode=OneWay}"
                         MaxWidth="280" HorizontalAlignment="Left" MinWidth="220" />
-                <CheckBox Content="Click sound for each detected particle" IsChecked="{x:Bind ViewModel.DevClickSound, Mode=TwoWay}" />
-                <CheckBox Content="Button press sound" IsChecked="{x:Bind ViewModel.DevButtonSound, Mode=TwoWay}" />
-                <CheckBox Content="Sound on Bluetooth connect / disconnect" IsChecked="{x:Bind ViewModel.DevConnectionSound, Mode=TwoWay}" />
-                <CheckBox Content="Sound on power on / off" IsChecked="{x:Bind ViewModel.DevPowerSound, Mode=TwoWay}" />
+                <ToggleSwitch Header="Click sound for each detected particle" IsOn="{x:Bind ViewModel.DevClickSound, Mode=TwoWay}" />
+                <ToggleSwitch Header="Button press sound" IsOn="{x:Bind ViewModel.DevButtonSound, Mode=TwoWay}" />
+                <ToggleSwitch Header="Sound on Bluetooth connect / disconnect" IsOn="{x:Bind ViewModel.DevConnectionSound, Mode=TwoWay}" />
+                <ToggleSwitch Header="Sound on power on / off" IsOn="{x:Bind ViewModel.DevPowerSound, Mode=TwoWay}" />
                 <ToggleSwitch Header="Vibration" IsOn="{x:Bind ViewModel.DevVibrationOn, Mode=TwoWay}" />
-                <CheckBox Content="Button press vibration" IsChecked="{x:Bind ViewModel.DevButtonVibration, Mode=TwoWay}" />
+                <ToggleSwitch Header="Button press vibration" IsOn="{x:Bind ViewModel.DevButtonVibration, Mode=TwoWay}" />
                 <TextBlock Style="{StaticResource Muted}" FontSize="13"
-                           Text="Same as Settings → Signals on the device. Event sounds are only heard when Sound is on." />
+                           Text="Same as Settings → Signals on the device. Event sounds are only heard when Sound is on. Every change is written to the device right away." />
               </StackPanel>
 
               <StackPanel Grid.Column="1" Spacing="4">
@@ -163,7 +161,7 @@
                   <x:String>Sievert (Sv)</x:String>
                   <x:String>Roentgen (R)</x:String>
                 </ComboBox>
-                <CheckBox Content="Show low dose rates in nSv/h" IsChecked="{x:Bind ViewModel.DevNanoSievert, Mode=TwoWay}" />
+                <ToggleSwitch Header="Show low dose rates in nSv/h" IsOn="{x:Bind ViewModel.DevNanoSievert, Mode=TwoWay}" />
                 <ComboBox Header="Count rate" MinWidth="160" SelectedIndex="{x:Bind ViewModel.DevCountUnitsIndex, Mode=TwoWay}">
                   <x:String>Counts per second (cps)</x:String>
                   <x:String>Counts per minute (cpm)</x:String>
