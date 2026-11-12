@@ -67,7 +67,7 @@ public sealed record DeviceSettings
     /// <summary>Registers read when present; missing ones are left out and never written.</summary>
     internal static readonly Vsfr[] OptionalRegisters =
     [
-        Vsfr.SoundVolume, Vsfr.DeviceLang, Vsfr.DoseUnits, Vsfr.UseNanoSvH, Vsfr.CountRateUnits, Vsfr.TempUnits,
+        // DEVICE_LANG is left out: the international RC-110 firmware (Language=English in its configuration) has only English.
     ];
 
     internal static DeviceSettings FromRaw(IReadOnlyDictionary<Vsfr, uint> r) => new()

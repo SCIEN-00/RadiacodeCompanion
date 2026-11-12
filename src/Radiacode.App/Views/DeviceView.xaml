@@ -153,7 +153,7 @@
               </StackPanel>
 
               <StackPanel Grid.Row="1" Spacing="4" IsHitTestVisible="{x:Bind ViewModel.DevHasUnits, Mode=OneWay}">
-                <TextBlock Style="{StaticResource Label}" Text="UNITS &amp; LANGUAGE (ON THE DEVICE)" />
+                <TextBlock Style="{StaticResource Label}" Text="UNITS (ON THE DEVICE)" />
                 <ComboBox Header="Dose units" MinWidth="160" SelectedIndex="{x:Bind ViewModel.DevDoseUnitsIndex, Mode=TwoWay}">
                   <x:String>Sievert (Sv)</x:String>
                   <x:String>Roentgen (R)</x:String>
@@ -167,10 +167,7 @@
                   <x:String>Celsius (°C)</x:String>
                   <x:String>Fahrenheit (°F)</x:String>
                 </ComboBox>
-                <ComboBox Header="Menu language" MinWidth="160" SelectedIndex="{x:Bind ViewModel.DevLanguageIndex, Mode=TwoWay}">
-                  <x:String>English</x:String>
-                  <x:String>Russian</x:String>
-                </ComboBox>
+
                 <TextBlock Style="{StaticResource Muted}" FontSize="13"
                            Text="Changes what the detector's own screen shows. The app always uses nSv/h, cps and °C." />
               </StackPanel>

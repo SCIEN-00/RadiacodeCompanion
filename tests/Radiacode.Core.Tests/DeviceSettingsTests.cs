@@ -60,7 +60,7 @@ public class DeviceSettingsTests
         var back = (IReadOnlyDictionary<Vsfr, uint>)toRaw.Invoke(s with { SoundVolume = 250, Fahrenheit = true }, null)!;
         Assert.Equal(100u, back[Vsfr.SoundVolume]);
         Assert.Equal(1u, back[Vsfr.TempUnits]);
-        Assert.Equal(0u, back[Vsfr.DeviceLang]);
+        Assert.Equal(0u, back[Vsfr.DeviceLang]); // kept as read, never changed by the app
     }
 
     [Fact]
