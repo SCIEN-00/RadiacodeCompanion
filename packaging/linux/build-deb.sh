@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds radiacode-companion_<version>_<arch>.deb from a self-contained "dotnet publish" output.
+# Builds radiacode-companion_<version>_linux-<x64|arm64>.deb from a self-contained "dotnet publish" output.
 # Usage: packaging/linux/build-deb.sh <publish-dir> <version> <amd64|arm64> <out-dir>
 set -euo pipefail
 
@@ -72,5 +72,9 @@ cp "$STAGE/DEBIAN/postinst" "$STAGE/DEBIAN/postrm"
 chmod 0755 "$STAGE/DEBIAN/postinst" "$STAGE/DEBIAN/postrm"
 
 mkdir -p "$OUT_DIR"
-dpkg-deb --root-owner-group --build "$STAGE" "$OUT_DIR/${PKG}_${VERSION}_${ARCH}.deb"
-echo "Built $OUT_DIR/${PKG}_${VERSION}_${ARCH}.deb"
+# File name uses the same platform names as the Windows installers (linux-x64 / linux-arm64);
+# the Debian architecture (amd64 / arm64) stays in the package metadata.
+case "$ARCH" in amd64) RID=linux-x64 ;; *) RID="linux-$ARCH" ;; esac
+DEB="$OUT_DIR/${PKG}_${VERSION}_${RID}.deb"
+dpkg-deb --root-owner-group --build "$STAGE" "$DEB"
+echo "Built $DEB"
