@@ -46,6 +46,8 @@ public sealed partial class MainPage : Page
             if (e.PropertyName == nameof(MainViewModel.PulseActive)) Breathe();
             else if (e.PropertyName == nameof(MainViewModel.ThemeIndex)) ApplyTheme();
             if (e.PropertyName is nameof(MainViewModel.IsPaused) or nameof(MainViewModel.IsConnected)) UpdateConnectionState();
+            if (e.PropertyName is nameof(MainViewModel.DoseLevelIndex) or nameof(MainViewModel.LiveCountRate) or nameof(MainViewModel.LiveDoseNSvH)
+                or nameof(MainViewModel.PulseActive) or nameof(MainViewModel.IsConnected)) UpdateDoseGlow();
         };
         // Status glow: one pulse per reading.
         var statusPulse = (Storyboard)AppTitleBar.Resources["StatusPulse"];
@@ -62,11 +64,13 @@ public sealed partial class MainPage : Page
         AppDomain.CurrentDomain.ProcessExit += (_, _) => ViewModel.Shutdown();
         AppDomain.CurrentDomain.UnhandledException += (_, e) => { if (e.IsTerminating) ViewModel.Shutdown(); };
         ViewModel.ChooseDevice = ChooseDeviceAsync;
+        ActualThemeChanged += (_, _) => UpdateDoseGlow();
 
         Loaded += (_, _) =>
         {
             ApplyTheme();
             UpdateConnectionState();
+            SetupDoseGlow();
             SetMinimumWindowSize(600, 560);
         };
 

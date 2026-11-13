@@ -89,6 +89,12 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial string DoseRateText { get; set; }
     [ObservableProperty] public partial string DoseRateErrorText { get; set; }
     [ObservableProperty] public partial string DoseRateState { get; set; }
+    /// <summary>Dose-rate level: 0 normal, 1 elevated, 2 high, 3 dangerous; -1 before the first reading. The page colours it.</summary>
+    [ObservableProperty] public partial int DoseLevelIndex { get; set; }
+    /// <summary>Latest count rate as a number (cps), for the glow size.</summary>
+    [ObservableProperty] public partial double LiveCountRate { get; set; }
+    /// <summary>Latest dose rate as a number (nSv/h), for the glow colour.</summary>
+    [ObservableProperty] public partial double LiveDoseNSvH { get; set; }
     [ObservableProperty] public partial string CountRateText { get; set; }
     [ObservableProperty] public partial string CountRateErrorText { get; set; }
     [ObservableProperty] public partial string HardnessText { get; set; }
@@ -232,6 +238,7 @@ public partial class MainViewModel : ObservableObject
         DoseRateText = "—";
         DoseRateErrorText = "";
         DoseRateState = "Waiting for data";
+        DoseLevelIndex = -1;
         CountRateText = "—";
         CountRateErrorText = "";
         HardnessText = "—";
@@ -594,6 +601,31 @@ public partial class MainViewModel : ObservableObject
         DoseDurationText = $"over {(int)span.TotalDays} d {span.Hours} h {span.Minutes} min";
     }
 
+    // Fixed dose-rate bands (nSv/h) for the colour indication, independent of the user's alarm level.
+    private static readonly (double FromNSvH, string State)[] DoseLevels =
+    [
+        (0, "Normal background"),
+        (300, "Elevated, look around"),
+        (1_000, "High, limit your time here"),
+        (10_000, "Dangerous, leave the area"),
+    ];
+    private int _doseLevel = -1;
+
+    private void UpdateDoseLevel(double nSvH)
+    {
+        int level = 0;
+        for (int i = 1; i < DoseLevels.Length; i++)
+            if (nSvH >= DoseLevels[i].FromNSvH) level = i;
+        // 10 % hysteresis on the way down so the colour doesn't flicker around a boundary
+        if (_doseLevel > level && nSvH >= DoseLevels[_doseLevel].FromNSvH * 0.9) level = _doseLevel;
+        if (level != _doseLevel)
+        {
+            _doseLevel = level;
+            DoseLevelIndex = level;
+        }
+        DoseRateState = DoseLevels[level].State + (AlarmLevel > 0 && nSvH >= AlarmLevel ? " (above alarm level)" : "");
+    }
+
     private void Apply(DataBufRecord rec)
     {
         switch (rec)
@@ -604,8 +636,9 @@ public partial class MainViewModel : ObservableObject
                 CountRateText = rt.CountRate.ToString("F2");
                 CountRateErrorText = $"± {rt.CountRateErrorPercent:F1} % statistical error";
                 HardnessText = rt.Hardness?.ToString("F2") ?? "—";
-                double level = AlarmLevel > 0 ? AlarmLevel : 300;
-                DoseRateState = rt.DoseRateNanoSvH < level / 2 ? "Normal background" : rt.DoseRateNanoSvH < level ? "Elevated" : "Above alarm level";
+                UpdateDoseLevel(rt.DoseRateNanoSvH);
+                LiveDoseNSvH = rt.DoseRateNanoSvH;
+                LiveCountRate = rt.CountRate;
                 CheckAlarm(rt.DoseRateNanoSvH);
                 LastReadingText = rt.Timestamp.ToString("HH:mm:ss");
                 if (rt.IsCharging != _charging || rt.IsOnExternalPower != _externalPower)
