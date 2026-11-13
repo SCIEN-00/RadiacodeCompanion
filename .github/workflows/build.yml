@@ -62,11 +62,10 @@ jobs:
         run: >
           dotnet publish src/Radiacode.App/Radiacode.App.csproj -c Release -f net10.0-desktop
           -r ${{ matrix.rid }} --self-contained -p:Version=$VERSION -o out/${{ matrix.rid }}
-      - name: Package (.deb + .tar.gz)
+      - name: Package (.deb)
         run: |
           chmod +x packaging/linux/build-deb.sh
           packaging/linux/build-deb.sh out/${{ matrix.rid }} "$VERSION" ${{ matrix.deb }} dist
-          tar -C out -czf dist/radiacode-companion_${VERSION}_${{ matrix.rid }}.tar.gz ${{ matrix.rid }}
       - uses: actions/upload-artifact@v4
         with:
           name: radiacode-companion-${{ matrix.rid }}

@@ -29,7 +29,7 @@ GitHub Actions (`.github/workflows/build.yml`) builds on every push:
 
 - Windows `win-x64` and `win-arm64` — installer `_setup.exe` (per user, no admin rights needed)
 - Windows Microsoft Store packages (`.msix`, unsigned; the Store signs them) as separate build artifacts
-- Linux `linux-x64` and `linux-arm64` — `.deb` and `.tar.gz`
+- Linux `linux-x64` and `linux-arm64` — `.deb`
 
 Pushing a tag `vX.Y.Z` creates a GitHub release with all files and `SHA256SUMS.txt`.
 
