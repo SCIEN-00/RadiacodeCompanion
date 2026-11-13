@@ -54,9 +54,13 @@ public static class Decoders
                 }
                 case (0, 4): // UserData
                 case (0, 5): // ScheduleData
-                    if (r.Remaining < 16) return result;
-                    r.Skip(16);
+                {
+                    // FW 4.15 sends 6-byte records here, older firmware 16 bytes; pick the length the next sequence number confirms.
+                    int len = FixedLength(r, nextSeq.Value, 6, 16);
+                    if (len == 0) return result;
+                    r.Skip(len);
                     break;
+                }
                 case (0, 6): // AccelData
                     r.Skip(6);
                     break;
@@ -71,13 +75,28 @@ public static class Decoders
                 case (0, 9): // RawDoseRate
                     r.Skip(6);
                     break;
-                case (1, 1):
                 case (1, 2):
+                {
+                    // Stored history: a batch of dose-rate samples, the first at ts, then one every interval (10 ms units).
+                    ushort samples = r.ReadUInt16();
+                    uint interval = r.ReadUInt32();
+                    if (r.Remaining < samples * 16) return result;
+                    for (int i = 0; i < samples; i++)
+                    {
+                        uint count = r.ReadUInt32();
+                        float cr = r.ReadSingle(), dr = r.ReadSingle();
+                        ushort drErr = r.ReadUInt16(), flags = r.ReadUInt16();
+                        result.Add(new DoseRateDb(ts.AddMilliseconds(i * (double)interval * 10.0), count, cr, dr, drErr / 10f, flags));
+                    }
+                    break;
+                }
+                case (1, 1):
                 case (1, 3):
                 {
                     ushort samples = r.ReadUInt16();
-                    r.Skip(4); // sample time, ms
-                    int size = gid switch { 1 => 8, 2 => 16, _ => 14 };
+                    r.Skip(4); // sample interval
+                    int size = gid == 1 ? 8 : 14;
+                    if (r.Remaining < size * samples) return result;
                     r.Skip(size * samples);
                     break;
                 }
@@ -86,6 +105,14 @@ public static class Decoders
             }
         }
         return result;
+    }
+
+    /// <summary>Returns whichever candidate length is followed by the expected sequence number (or ends the buffer), else 0.</summary>
+    private static int FixedLength(ByteReader r, int nextSeq, params int[] candidates)
+    {
+        foreach (int len in candidates)
+            if (r.Remaining == len || (r.Remaining >= len + 7 && r.PeekByte(len) == nextSeq)) return len;
+        return 0;
     }
 
     public static Spectrum DecodeSpectrum(ByteReader r, int formatVersion)

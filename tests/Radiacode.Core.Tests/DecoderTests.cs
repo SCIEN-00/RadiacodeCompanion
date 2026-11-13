@@ -39,6 +39,36 @@ public class DecoderTests
     }
 
     [Fact]
+    public void DataBuf_RealRc110Backlog_DecodesStoredBatchesAndShortUserData()
+    {
+        // DATA_BUF payload captured from an RC-110 (FW 4.15) after 15 minutes unplugged: a single dose-rate
+        // record, an event, rare data, a stored batch of 6 dose-rate samples, a 6-byte gid 4 record,
+        // a batch of 3 more samples and trailing rare data / event records.
+        var hex =
+        "0A00027D76FEFF0204000000002B412C65D936C50000500B0007479CFEFF080040100C00035EA9FEFFBA5F0800DB8992" +
+        "3AF510402640100D0102FD9BFEFF06008025000024040000ABAA30414AE7D636D0000010A404000000004641E414FD36" +
+        "B4000010920400000000434165850537AC000010E4040000ABAA504147281337AE000010A5040000AB2A4641262EBA36" +
+        "B6000010A40400000000464123DBF936B30000100E00046D94FFFF740F000000100F0102FD7CFFFF030080250000BB04" +
+        "000055D54941D8810337B800001084040000ABAA4041D42BE536C3000010BE04000055554A41A60AE636B70000101000" +
+        "037EF1FFFF02630800F7CC923AEB10062640101100078DFFFFFF07004050120003EEFFFFFF27630800F7CC923AEA10AC" +
+        "264040";
+        var baseTime = new DateTime(2026, 11, 13, 17, 35, 2);
+        var recs = Decoders.DecodeDataBuf(new ByteReader(Convert.FromHexString(hex)), baseTime);
+
+        var db = recs.OfType<DoseRateDb>().ToList();
+        Assert.Equal(10, db.Count); // 1 single + 6 + 3 from the batches
+        Assert.Equal(baseTime.AddMilliseconds(-911_390), db[1].Timestamp);
+        for (int i = 2; i < db.Count; i++)
+            Assert.Equal(96.0, (db[i].Timestamp - db[i - 1].Timestamp).TotalSeconds, 1);
+        Assert.All(db, d => Assert.InRange(d.CountRate, 9f, 14f));
+        Assert.Equal(1060u, db[1].Count);
+        Assert.Equal(20.8f, db[1].DoseRateErrorPercent, 3);
+        // decoding continues past the short gid 4 record up to the end of the buffer
+        Assert.IsType<RareData>(recs.OfType<RareData>().Last());
+        Assert.True(recs.OfType<DeviceEvent>().Count() >= 2);
+    }
+
+    [Fact]
     public void DataBuf_DecodesRealTimeRareAndEvent()
     {
         var baseTime = new DateTime(2026, 11, 10, 12, 0, 0);
