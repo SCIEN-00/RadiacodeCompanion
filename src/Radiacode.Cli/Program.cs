@@ -43,6 +43,21 @@ Console.WriteLine($"Spectrum format v{dev.SpectrumFormatVersion}, transport {dev
 
 switch (mode)
 {
+    case "cmd":
+    {
+        // Debug: send a raw command (hex code) with raw argument bytes (hex), print the raw answer.
+        // e.g. rccli --ble cmd 081C 0000000010000000
+        var code = (Command)Convert.ToUInt16(args[1], 16);
+        var argBytes = args.Length > 2 ? Convert.FromHexString(args[2]) : [];
+        try
+        {
+            var rb = await dev.ExecuteAsync(code, argBytes, cts.Token);
+            var bytes = rb.ReadToEnd();
+            Console.WriteLine($"{bytes.Length} bytes: {Convert.ToHexString(bytes[..Math.Min(bytes.Length, 96)])}");
+        }
+        catch (Exception ex) { Console.WriteLine($"ERROR {ex.GetType().Name}: {ex.Message}"); }
+        break;
+    }
     case "regs":
     {
         // Debug: read every register listed in the device's own register map (SFR_FILE) and print its value.
