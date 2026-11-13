@@ -394,7 +394,7 @@ public partial class MainViewModel : ObservableObject
                     _history.Flush();
                     if (!everConnected)
                     {
-                        Status = ex.Message;
+                        Status = FriendlyError(ex);
                         AddEvent($"Connection error: {ex.Message}");
                         return;
                     }
@@ -416,7 +416,7 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             // Device search failed before any session started.
-            Status = ex.Message;
+            Status = FriendlyError(ex);
             AddEvent($"Connection error: {ex.Message}");
         }
         finally
@@ -624,6 +624,17 @@ public partial class MainViewModel : ObservableObject
             DoseLevelIndex = level;
         }
         DoseRateState = DoseLevels[level].State + (AlarmLevel > 0 && nSvH >= AlarmLevel ? " (above alarm level)" : "");
+    }
+
+    /// <summary>Short status text for connection errors; the full message still goes to the event log.</summary>
+    private static string FriendlyError(Exception ex)
+    {
+        string m = ex.Message;
+        if (m.Contains("org.freedesktop.DBus.Error.NameHasNoOwner") || m.Contains("org.freedesktop.DBus.Error.ServiceUnknown")
+            || m.Contains("org.bluez", StringComparison.OrdinalIgnoreCase))
+            return "Bluetooth not available (BlueZ is not running)";
+        if (m.Contains("org.freedesktop.DBus")) return "Bluetooth not available";
+        return m;
     }
 
     private void Apply(DataBufRecord rec)

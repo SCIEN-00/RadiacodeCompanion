@@ -19,7 +19,20 @@ install -d "$STAGE/opt/$PKG" "$STAGE/usr/bin" "$STAGE/usr/share/applications" \
 
 cp -a "$PUBLISH_DIR/." "$STAGE/opt/$PKG/"
 chmod 0755 "$STAGE/opt/$PKG/Radiacode.App"
-ln -s "/opt/$PKG/Radiacode.App" "$STAGE/usr/bin/$PKG"
+# Launcher instead of a plain symlink: SkiaSharp's built-in fontconfig calls FT_Get_BDF_Property, which its own
+# FreeType lacks. Preloading the system FreeType provides it; without that the app dies on systems where nothing
+# else has loaded FreeType yet (minimal installs, WSL).
+cat > "$STAGE/usr/bin/$PKG" <<'LAUNCHER'
+#!/bin/sh
+for ft in /usr/lib/*-linux-gnu/libfreetype.so.6 /usr/lib64/libfreetype.so.6 /usr/lib/libfreetype.so.6; do
+  if [ -e "$ft" ]; then
+    LD_PRELOAD="$ft${LD_PRELOAD:+:$LD_PRELOAD}"; export LD_PRELOAD
+    break
+  fi
+done
+exec /opt/radiacode-companion/Radiacode.App "$@"
+LAUNCHER
+chmod 0755 "$STAGE/usr/bin/$PKG"
 install -m 0644 "$HERE/$PKG.desktop" "$STAGE/usr/share/applications/$PKG.desktop"
 install -m 0644 "$ROOT/assets/logo/cherenkov-logo.svg" "$STAGE/usr/share/icons/hicolor/scalable/apps/$PKG.svg"
 install -m 0644 "$HERE/70-radiacode.rules" "$STAGE/usr/lib/udev/rules.d/70-radiacode.rules"
@@ -32,7 +45,7 @@ Version: $VERSION
 Architecture: $ARCH
 Maintainer: Lauri <noreply@example.invalid>
 Installed-Size: $INSTALLED_KB
-Depends: libusb-1.0-0, libfontconfig1, libx11-6
+Depends: libusb-1.0-0, libfontconfig1, libfreetype6, libx11-6, libicu78 | libicu77 | libicu76 | libicu75 | libicu74 | libicu73 | libicu72 | libicu71 | libicu70
 Recommends: bluez, libnotify-bin, libgl1
 Section: science
 Priority: optional
