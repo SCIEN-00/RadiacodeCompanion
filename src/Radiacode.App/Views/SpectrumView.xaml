@@ -40,14 +40,16 @@
                         ToolTipService.ToolTip="Compare with the saved background spectrum">
                 <x:String>Spectrum</x:String>
                 <x:String>With background</x:String>
-                <x:String>Minus background</x:String>
+                <x:String>Minus background (per second)</x:String>
+                <x:String>Significance (σ)</x:String>
               </ComboBox>
               <Button Content="Save as background…" Click="SaveBackground_Click" />
               <Button Content="Export CSV" Command="{x:Bind ViewModel.ExportSpectrumCommand}" />
               <Button Content="Reset spectrum…" Click="ResetSpectrum_Click" IsEnabled="{x:Bind ViewModel.IsConnected, Mode=OneWay}" />
             </StackPanel>
           </Grid>
-          <controls:LineChart Grid.Row="1" MinHeight="320" Unit="counts / channel"
+          <controls:LineChart Grid.Row="1" MinHeight="320" Unit="{x:Bind ViewModel.SpectrumPageUnit, Mode=OneWay}"
+                              ReferenceValue="{x:Bind ViewModel.SpectrumPageReference, Mode=OneWay}"
                               Stroke="{StaticResource AccentBrush}"
                               LogScale="{x:Bind ViewModel.SpectrumPageLog, Mode=OneWay}"
                               Values="{x:Bind ViewModel.SpectrumPageValues, Mode=OneWay}"

@@ -347,7 +347,8 @@ public sealed partial class LineChart : Grid
         _cursor.Children.Add(box);
     }
 
-    private static string FormatValue(double v) => Math.Abs(v) >= 100 ? v.ToString("0") : v.ToString("0.##");
+    private static string FormatValue(double v) =>
+        v == 0 ? "0" : Math.Abs(v) >= 100 ? v.ToString("0") : Math.Abs(v) >= 1 ? v.ToString("0.##") : v.ToString("0.###");
 
     private void OnPointerPressed(object sender, PointerRoutedEventArgs e)
     {
@@ -413,7 +414,13 @@ public sealed partial class LineChart : Grid
             yield break;
         }
         double step = NiceStep((mappedMax - mappedMin) / 4);
+        // enough decimals for small steps (e.g. 0.002 counts/s), and exact zero instead of -1E-17
+        string format = step >= 1 ? "0" : "0." + new string('0', Math.Max(1, (int)Math.Ceiling(-Math.Log10(step) - 1e-9))) + "#";
         for (double v = Math.Ceiling(mappedMin / step) * step; v < mappedMax; v += step)
-            yield return (step < 1 ? v.ToString("0.0#") : v.ToString("0"), v);
+        {
+            double tick = Math.Round(v / step) * step;
+            if (Math.Abs(tick) < step * 1e-6) tick = 0; // no "-0,00"
+            yield return (tick.ToString(format), tick);
+        }
     }
 }

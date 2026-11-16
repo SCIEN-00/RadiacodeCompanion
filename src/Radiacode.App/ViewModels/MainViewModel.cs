@@ -132,6 +132,10 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial string SpectrumExportText { get; set; }
     [ObservableProperty] public partial string CalibrationText { get; set; }
     [ObservableProperty] public partial IReadOnlyList<double>? SpectrumOverlay { get; set; }
+    /// <summary>Y-axis unit of the spectrum page chart (changes with the background mode).</summary>
+    [ObservableProperty] public partial string SpectrumPageUnit { get; set; } = "counts / channel";
+    /// <summary>Dashed reference line on the spectrum page chart (+3 σ in the significance view), NaN = none.</summary>
+    [ObservableProperty] public partial double SpectrumPageReference { get; set; } = double.NaN;
     /// <summary>Spectrum page: 0 = spectrum only, 1 = with background overlay, 2 = spectrum minus background.</summary>
     [ObservableProperty] public partial int BackgroundModeIndex { get; set; }
     [ObservableProperty] public partial IReadOnlyList<double>? SpectrumPageValues { get; set; }
@@ -932,7 +936,9 @@ public partial class MainViewModel : ObservableObject
     {
         var sp = _displaySpectrum;
         int mode = BackgroundModeIndex;
-        SpectrumPageLog = SpectrumLog && mode != 2;
+        SpectrumPageLog = SpectrumLog && mode < 2;
+        SpectrumPageUnit = "counts / channel";
+        SpectrumPageReference = double.NaN;
         if (mode == 0 || _background is not { } bg || sp is null || bg.Counts.Length != sp.Counts.Length || bg.DurationSeconds <= 0)
         {
             SpectrumOverlay = null;
@@ -958,18 +964,35 @@ public partial class MainViewModel : ObservableObject
         }
         else
         {
-            // Difference per channel is very noisy at background levels; a 7-channel moving average keeps peaks visible.
+            // Per channel the counts are very noisy at background levels; a 7-channel window keeps peaks visible.
             const int half = 3;
-            var diff = new double[DisplayedChannels(sp)];
-            for (int i = 0; i < diff.Length; i++)
+            int channels = DisplayedChannels(sp);
+            double t = Math.Max(1, sp.Duration.TotalSeconds), tb = bg.DurationSeconds;
+            var values = new double[channels];
+            for (int i = 0; i < channels; i++)
             {
-                double sum = 0; int cnt = 0;
-                for (int j = Math.Max(0, i - half); j <= Math.Min(diff.Length - 1, i + half); j++) { sum += sp.Counts[j] - scaled[j]; cnt++; }
-                diff[i] = sum / cnt;
+                double s = 0, b = 0; int cnt = 0;
+                for (int j = Math.Max(0, i - half); j <= Math.Min(channels - 1, i + half); j++) { s += sp.Counts[j]; b += bg.Counts[j]; cnt++; }
+                values[i] = mode == 2
+                    // rate difference: doesn't grow with the measuring time
+                    ? (s / t - b / tb) / cnt
+                    // significance: difference in units of its statistical uncertainty, ~±2 around zero when nothing changed
+                    : (s - k * b) / Math.Sqrt(Math.Max(1, s + k * k * b));
             }
             SpectrumOverlay = null;
-            SpectrumPageValues = diff;
-            BackgroundCompareText = $"Spectrum minus background from {bg.Saved:yyyy-MM-dd HH:mm} (scaled, 7-channel average). Above zero = more than background. {totals}";
+            SpectrumPageValues = values;
+            string rates = $"Now {n / t:0.00} cps, background {bg.TotalCounts / tb:0.00} cps.";
+            if (mode == 2)
+            {
+                SpectrumPageUnit = "counts / s per channel";
+                BackgroundCompareText = $"Count rate minus background from {bg.Saved:yyyy-MM-dd HH:mm} (7-channel average). Above zero = more than background. {rates} {totals}";
+            }
+            else
+            {
+                SpectrumPageUnit = "σ";
+                SpectrumPageReference = 3;
+                BackgroundCompareText = $"Difference from background ({bg.Saved:yyyy-MM-dd HH:mm}) in standard deviations, 7-channel windows. Noise stays within about ±2 σ; above the dashed +3 σ line a line is most likely real. {rates} {totals}";
+            }
         }
     }
 
