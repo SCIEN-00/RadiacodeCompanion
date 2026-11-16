@@ -190,10 +190,6 @@ jobs:
           $makeappx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\makeappx.exe" | Sort-Object FullName -Descending | Select-Object -First 1
           & $makeappx.FullName bundle /d store /p "radiacode-companion_$($env:VERSION).msixbundle" /bv "$($env:VERSION).0" /o
           if ($LASTEXITCODE -ne 0) { throw "makeappx failed ($LASTEXITCODE)" }
-          # msstore takes a directory with an .msix or .msixupload; an .msixupload is a zip that holds the bundle
-          New-Item -ItemType Directory upload -Force | Out-Null
-          Compress-Archive "radiacode-companion_$($env:VERSION).msixbundle" "upload/radiacode-companion_$($env:VERSION).zip" -Force
-          Move-Item "upload/radiacode-companion_$($env:VERSION).zip" "upload/radiacode-companion_$($env:VERSION).msixupload" -Force
       - if: env.HAS_STORE == 'true'
         uses: microsoft/setup-msstore-cli@v1
       - if: env.HAS_STORE == 'true'
@@ -202,5 +198,6 @@ jobs:
         run: |
           msstore reconfigure --tenantId "${{ secrets.MSSTORE_TENANT_ID }}" --sellerId "${{ secrets.MSSTORE_SELLER_ID }}" `
             --clientId "${{ secrets.MSSTORE_CLIENT_ID }}" --clientSecret "${{ secrets.MSSTORE_CLIENT_SECRET }}"
-          msstore publish src/Radiacode.App --inputDirectory upload `
+          msstore publish "radiacode-companion_$($env:VERSION).msixbundle" `
             --appId "${{ secrets.MSSTORE_PRODUCT_ID }}" --verbose
+          # a package path (not a project) makes msstore upload this exact file instead of building the project itself
