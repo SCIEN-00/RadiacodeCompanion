@@ -198,6 +198,28 @@ jobs:
         run: |
           msstore reconfigure --tenantId "${{ secrets.MSSTORE_TENANT_ID }}" --sellerId "${{ secrets.MSSTORE_SELLER_ID }}" `
             --clientId "${{ secrets.MSSTORE_CLIENT_ID }}" --clientSecret "${{ secrets.MSSTORE_CLIENT_SECRET }}"
-          msstore publish "radiacode-companion_$($env:VERSION).msixbundle" `
-            --appId "${{ secrets.MSSTORE_PRODUCT_ID }}" --verbose
-          # a package path (not a project) makes msstore upload this exact file instead of building the project itself
+          $id = "${{ secrets.MSSTORE_PRODUCT_ID }}"
+          $bundle = "radiacode-companion_$($env:VERSION).msixbundle"
+          # A package path (not a project) makes msstore upload this exact file. Draft first, so older packages
+          # can be removed from the submission before it goes to certification.
+          msstore publish $bundle --appId $id --noCommit --verbose
+          if ($LASTEXITCODE -ne 0) { throw "msstore publish failed ($LASTEXITCODE)" }
+          try {
+            $json = (msstore submission get $id | Out-String)
+            $sub = $json | ConvertFrom-Json
+            $packages = $sub.PSObject.Properties | Where-Object { $_.Name -match '^applicationPackages$' } | Select-Object -First 1
+            if (-not $packages) { throw "no applicationPackages in the submission JSON" }
+            $old = @($packages.Value | Where-Object { $_.fileName -and $_.fileName -ne $bundle })
+            foreach ($p in $old) {
+              $field = $p.PSObject.Properties | Where-Object { $_.Name -match '^fileStatus$' } | Select-Object -First 1
+              if ($field) { $p.($field.Name) = 'PendingDelete'; Write-Host "Removing old package $($p.fileName)" }
+            }
+            if ($old.Count -gt 0) {
+              msstore submission update $id ($sub | ConvertTo-Json -Depth 50 -Compress)
+              if ($LASTEXITCODE -ne 0) { throw "submission update failed ($LASTEXITCODE)" }
+            }
+          } catch {
+            Write-Host "::warning::Could not remove older packages, submitting with them: $_"
+          }
+          msstore submission publish $id
+          if ($LASTEXITCODE -ne 0) { throw "msstore submission publish failed ($LASTEXITCODE)" }
