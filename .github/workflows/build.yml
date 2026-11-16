@@ -159,3 +159,44 @@ jobs:
           release-tag: ${{ github.ref_name }}
           installers-regex: '_setup\.exe$'
           token: ${{ secrets.WINGET_TOKEN }}
+
+  # New version → Microsoft Store submission (submitted for certification automatically).
+  # Needs the repo secrets MSSTORE_TENANT_ID, MSSTORE_SELLER_ID, MSSTORE_CLIENT_ID, MSSTORE_CLIENT_SECRET (Partner Center
+  # Entra application, role Manager) and MSSTORE_PRODUCT_ID (Store ID, 9N…). Skipped while they are missing.
+  store:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [version, windows]
+    runs-on: windows-latest
+    continue-on-error: true
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      HAS_STORE: ${{ secrets.MSSTORE_CLIENT_SECRET != '' && secrets.MSSTORE_PRODUCT_ID != '' }}
+    steps:
+      - if: env.HAS_STORE != 'true'
+        run: echo "Microsoft Store secrets not set; skipping the Store submission."
+      - if: env.HAS_STORE == 'true'
+        uses: actions/checkout@v5
+      - if: env.HAS_STORE == 'true'
+        uses: actions/download-artifact@v5
+        with:
+          pattern: store-msix-*
+          path: store
+          merge-multiple: true
+      # x64 + arm64 in one .msixbundle, so a single upload replaces both packages
+      - if: env.HAS_STORE == 'true'
+        name: Bundle
+        shell: pwsh
+        run: |
+          $makeappx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\makeappx.exe" | Sort-Object FullName -Descending | Select-Object -First 1
+          & $makeappx.FullName bundle /d store /p "radiacode-companion_$($env:VERSION).msixbundle" /bv "$($env:VERSION).0" /o
+          if ($LASTEXITCODE -ne 0) { throw "makeappx failed ($LASTEXITCODE)" }
+      - if: env.HAS_STORE == 'true'
+        uses: microsoft/setup-msstore-cli@v1
+      - if: env.HAS_STORE == 'true'
+        name: Submit to the Microsoft Store
+        shell: pwsh
+        run: |
+          msstore reconfigure --tenantId "${{ secrets.MSSTORE_TENANT_ID }}" --sellerId "${{ secrets.MSSTORE_SELLER_ID }}" `
+            --clientId "${{ secrets.MSSTORE_CLIENT_ID }}" --clientSecret "${{ secrets.MSSTORE_CLIENT_SECRET }}"
+          msstore publish src/Radiacode.App --inputFile "radiacode-companion_$($env:VERSION).msixbundle" `
+            --appId "${{ secrets.MSSTORE_PRODUCT_ID }}" --verbose
