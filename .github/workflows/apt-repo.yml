@@ -1,0 +1,80 @@
+name: APT repository
+
+# Publishes the .deb packages of the latest GitHub release as a signed APT repository on GitHub Pages:
+#   https://scien-00.github.io/RadiacodeCompanion/apt  (suite "stable", component "main", amd64 + arm64)
+# Runs after a tagged Build finishes (releases made by GITHUB_TOKEN don't trigger release events), or by hand.
+on:
+  workflow_run:
+    workflows: [Build]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'v'))
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}apt/
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build the repository
+        shell: bash
+        env:
+          APT_GPG_PRIVATE_KEY: ${{ secrets.APT_GPG_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          repo=site/apt
+          mkdir -p "$repo/pool/main"
+          # only the latest release is kept, so the Pages site stays small
+          gh release download --repo "$GITHUB_REPOSITORY" --pattern '*.deb' --dir "$repo/pool/main"
+          ls -l "$repo/pool/main"
+          cd "$repo"
+          for arch in amd64 arm64; do
+            mkdir -p "dists/stable/main/binary-$arch"
+            dpkg-scanpackages --arch "$arch" --multiversion pool /dev/null > "dists/stable/main/binary-$arch/Packages"
+            gzip -9kf "dists/stable/main/binary-$arch/Packages"
+          done
+          apt-ftparchive \
+            -o APT::FTPArchive::Release::Origin="SCIENindustries" \
+            -o APT::FTPArchive::Release::Label="Radiacode Companion" \
+            -o APT::FTPArchive::Release::Suite="stable" \
+            -o APT::FTPArchive::Release::Codename="stable" \
+            -o APT::FTPArchive::Release::Architectures="amd64 arm64" \
+            -o APT::FTPArchive::Release::Components="main" \
+            -o APT::FTPArchive::Release::Description="Radiacode Companion (unofficial app for RadiaCode detectors)" \
+            release dists/stable > dists/stable/Release
+          export GNUPGHOME="$(mktemp -d)"
+          echo "$APT_GPG_PRIVATE_KEY" | gpg --batch --quiet --import
+          gpg --batch --yes --clearsign -o dists/stable/InRelease dists/stable/Release
+          gpg --batch --yes --armor --detach-sign -o dists/stable/Release.gpg dists/stable/Release
+          rm -rf "$GNUPGHOME"
+          cp "$GITHUB_WORKSPACE/packaging/linux/radiacode-companion.gpg" .
+          cat > index.html <<'EOF'
+          <!doctype html><meta charset="utf-8"><title>Radiacode Companion APT repository</title>
+          <h1>Radiacode Companion APT repository</h1>
+          <p>Debian/Ubuntu, amd64 and arm64. Set up once:</p>
+          <pre>sudo curl -fsSLo /usr/share/keyrings/radiacode-companion.gpg https://scien-00.github.io/RadiacodeCompanion/apt/radiacode-companion.gpg
+          echo "deb [signed-by=/usr/share/keyrings/radiacode-companion.gpg] https://scien-00.github.io/RadiacodeCompanion/apt stable main" | sudo tee /etc/apt/sources.list.d/radiacode-companion.list
+          sudo apt update &amp;&amp; sudo apt install radiacode-companion</pre>
+          <p>Source and other downloads: <a href="https://github.com/SCIEN-00/RadiacodeCompanion">github.com/SCIEN-00/RadiacodeCompanion</a></p>
+          EOF
+          find . -type f | sort
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
