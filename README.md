@@ -42,6 +42,21 @@ Pushing a tag `vX.Y.Z` creates a GitHub release with all files and `SHA256SUMS.t
 ## Requirements
 
 - **Windows:** the device must use the WinUSB driver for USB (Bluetooth needs nothing extra).
+### Linux: install from the APT repository (automatic updates)
+
+Debian/Ubuntu, amd64 and arm64. Set up once; afterwards new versions come with `sudo apt upgrade` like the rest of the system:
+
+```bash
+sudo curl -fsSLo /usr/share/keyrings/radiacode-companion.gpg https://scien-00.github.io/RadiacodeCompanion/apt/radiacode-companion.gpg
+echo "deb [signed-by=/usr/share/keyrings/radiacode-companion.gpg] https://scien-00.github.io/RadiacodeCompanion/apt stable main" | sudo tee /etc/apt/sources.list.d/radiacode-companion.list
+sudo apt update && sudo apt install radiacode-companion
+```
+
+To let `unattended-upgrades` install new versions automatically too:
+
+```bash
+echo 'Unattended-Upgrade::Origins-Pattern { "origin=SCIENindustries,label=Radiacode Companion"; };' | sudo tee /etc/apt/apt.conf.d/52radiacode-companion
+```
 - **Linux:** the `.deb` installs a udev rule for USB access (`0483:f123`); Bluetooth uses BlueZ.
 - Building: .NET 10 SDK (see `global.json`).
 
