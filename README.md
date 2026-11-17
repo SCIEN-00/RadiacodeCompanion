@@ -39,10 +39,7 @@ GitHub Actions (`.github/workflows/build.yml`) builds on every push:
 
 Pushing a tag `vX.Y.Z` creates a GitHub release with all files and `SHA256SUMS.txt`.
 
-## Requirements
-
-- **Windows:** the device must use the WinUSB driver for USB (Bluetooth needs nothing extra).
-### Linux: install from the APT repository (automatic updates)
+## Install on Linux (APT repository, automatic updates)
 
 Debian/Ubuntu, amd64 and arm64. Set up once; afterwards new versions come with `sudo apt upgrade` like the rest of the system:
 
@@ -57,6 +54,10 @@ To let `unattended-upgrades` install new versions automatically too:
 ```bash
 echo 'Unattended-Upgrade::Origins-Pattern { "origin=SCIENindustries,label=Radiacode Companion"; };' | sudo tee /etc/apt/apt.conf.d/52radiacode-companion
 ```
+
+## Requirements
+
+- **Windows:** the device must use the WinUSB driver for USB (Bluetooth needs nothing extra).
 - **Linux:** the `.deb` installs a udev rule for USB access (`0483:f123`); Bluetooth uses BlueZ.
 - Building: .NET 10 SDK (see `global.json`).
 
