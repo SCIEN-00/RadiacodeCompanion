@@ -37,15 +37,19 @@ jobs:
           APT_GPG_PRIVATE_KEY: ${{ secrets.APT_GPG_PRIVATE_KEY }}
         run: |
           set -euo pipefail
+          sudo apt-get install -y -qq dpkg-dev apt-utils > /dev/null
           repo=site/apt
           mkdir -p "$repo/pool/main"
           # only the latest release is kept, so the Pages site stays small
           gh release download --repo "$GITHUB_REPOSITORY" --pattern '*.deb' --dir "$repo/pool/main"
           ls -l "$repo/pool/main"
           cd "$repo"
+          # file names say linux-x64/linux-arm64 (not _amd64.deb), so scan everything and split by the Architecture field
+          dpkg-scanpackages --multiversion pool /dev/null > /tmp/Packages.all
           for arch in amd64 arm64; do
             mkdir -p "dists/stable/main/binary-$arch"
-            dpkg-scanpackages --arch "$arch" --multiversion pool /dev/null > "dists/stable/main/binary-$arch/Packages"
+            awk -v RS= -v ORS='\n\n' -v a="$arch" '$0 ~ ("\nArchitecture: " a "(\n|$)")' /tmp/Packages.all > "dists/stable/main/binary-$arch/Packages"
+            grep -c '^Package:' "dists/stable/main/binary-$arch/Packages"
             gzip -9kf "dists/stable/main/binary-$arch/Packages"
           done
           apt-ftparchive \
